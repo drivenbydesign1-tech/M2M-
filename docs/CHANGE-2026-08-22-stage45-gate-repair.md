@@ -152,3 +152,41 @@ Founder session credential.
 ```
 
 That is correct behaviour. Both SEL records remain Pending for Kevin A. Smith.
+
+---
+
+## Post-run correction: DBC-001
+
+Running the full daily battery after these changes surfaced a deviation **caused by
+this session's own work**:
+
+```
+DBC-001  DEVIATION  HIGH
+7 of 7 migrations have no referencing ledger row
+[20260822105207, 20260822105249, 20260822105409, 20260822105515,
+ 20260822111354, 20260822111625, 20260822111725]
+```
+
+`bp004_corrective_ledger_check` matches a migration's **version string** against
+`action_description`, `deliverable_location` or `declared_action`. The SEL records
+written in this session named their migrations by *name* only, so every one of them
+counted as an orphan.
+
+Corrected by amending the three SEL records to carry their version identifiers in
+`deliverable_location`, with `amended`, `amendment_reason`, `amended_at` and
+`amended_by` set. No substantive content was altered — the migrations always
+belonged to those records; only the identifier the rule looks for was missing.
+
+Re-run: `DBC-001 CONFORM — 0 of 7 migrations have no referencing ledger row`.
+
+**Note for future sessions:** cite migration version numbers, not just names, in
+`declared_action` or `deliverable_location`.
+
+## Full battery after all changes
+
+97 checks executed, no crash. `WS43-01 CONFORM` at 205 of 205 (the 11:00 UTC
+`m2m-ceo-dashboard-loop` cron fired mid-session and inserted two new loops, taking
+the universe from 203 to 205; both arrive at `cycle_stage` NULL, which is why
+`WS41-01` unclassified moved 12 → 14). The remaining deviations in that run are
+pre-existing and were not introduced here — `WS24-01`, `WS24-03` and `WS31-01` at
+BLOCKING severity are the notable ones and are untouched by this work.
