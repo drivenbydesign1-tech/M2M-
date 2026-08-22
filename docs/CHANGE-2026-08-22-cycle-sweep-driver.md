@@ -95,3 +95,78 @@ select cron.alter_job(
 `SEL-20260822-E2951181` initially cited migration version `20260822114812` — guessed
 rather than read. The applied version is `20260822114837`, and `DBC-001` counted the
 migration as an orphan until the record was amended. Cite versions you have read.
+
+---
+
+# Part two: new loops now enter the cycle
+
+**Ledger** `SEL-20260822-AB55DBCD` (BUILD, Executed, Pending)
+**Component** `MUON-CYCLE-CLS-001`
+**Migration** `20260822115410_loop_executions_classify_signal_on_insert.sql`
+
+Scheduling the driver was necessary and not sufficient — it reported
+`eligible_now: 1` against `unclassified_now: 14`. This closes that gap forward.
+
+- `loop_executions.cycle_stage` now **defaults to 1** (SIGNAL)
+- `trg_ab_cycle_stage_default` (BEFORE INSERT) coerces an explicit NULL to 1
+
+Both exist because the default cannot catch an explicitly-inserted NULL, and the
+loop-creating paths are several: pg_cron, the `m2m-loop-webhook` Edge Function, and
+Make scenarios — not all visible from the database.
+
+## Why stage 1 is earned, not assumed
+
+Stage 1's exit test is evaluated as `loop_name IS NOT NULL AND trigger_source IS NOT
+NULL`. **Both columns are NOT NULL in the table definition.** Any row that exists has
+necessarily satisfied stage 1. The schema guarantees the classification is true — it
+is not a guess about what happened to the loop.
+
+## Verified
+
+Dual-path probe inside an aborted transaction:
+
+```
+omitted->1 | explicit_null->1 | pre-existing NULL rows before=14 after=14
+```
+
+Both creation shapes classify to 1. Existing rows untouched — the trigger is
+INSERT-only, confirmed via `pg_trigger.tgtype` (BEFORE INSERT set, UPDATE bit clear).
+Probe fully rolled back: 0 `PROBE%` rows remain, 205 loops, distribution unchanged.
+
+`DBC-001 CONFORM` · `WS43-01 CONFORM` · `WS41-01` still reports 14 unclassified,
+which is correct — nothing was backfilled.
+
+## Open for Founder decision: the 14 existing rows
+
+All 14 satisfy stage 1's exit test on paper. Their statuses have not stayed together:
+
+| Status | Count | Loops |
+|---|---|---|
+| `RUNNING` | 8 | CEO Dashboard Briefing (daily, 15–22 Aug) |
+| `HUMAN_REQUIRED` | 5 | Month-End Close Prep ×2, FORGE / COMPASS / ANCHOR Intake |
+| `CLOSED` | 1 | Platform Integrity Sentinel |
+
+Classifying a **CLOSED** loop as "signal received" would be false, and
+`m2m_cycle_exit_test` declines this mapping itself — it returns `UNCLASSIFIED` with
+the note that status maps to stages 2–6 ambiguously.
+
+A defensible narrow backfill covers **only the eight RUNNING CEO Dashboard Briefing
+rows**. The CLOSED and HUMAN_REQUIRED rows need a judgement about what stage they
+actually reached, which is not in the data.
+
+## What to watch
+
+At 11:00 UTC the CEO dashboard cron creates the next loops; they now enter at stage 1.
+At 14:00 UTC the sweep runs. In `m2m_cycle_sweep_log`, expect **`eligible_now` to
+rise** while **`unclassified_now` holds flat at 14**.
+
+## Rollback
+
+```sql
+drop trigger if exists trg_ab_cycle_stage_default on public.loop_executions;
+drop function public.trgfn_loop_default_cycle_stage();
+alter table public.loop_executions alter column cycle_stage drop default;
+```
+
+Safe unconditionally and in any order — they affect only rows inserted after this
+change, and nothing reads the default.
