@@ -2,7 +2,7 @@
 
 **Migration:** `supabase/migrations/20260828141500_ws48_eco_authenticate_founder_gate_and_detector.sql`
 **Detector:** `WS48-01`
-**Status:** **APPLIED** 2026-08-28 on narrow Founder authorization. Ledger rows Pending.
+**Status:** **APPLIED and FOUNDER-AUTHENTICATED** 2026-08-28. Ledger rows Approved.
 **Applied versions:** `20260828095500` (WS48) · `20260828095705` (WS48-01a correction)
 **Prior record:** `SEL-20260827-AF9B1D84` (Held — recommended exactly this fix)
 
@@ -273,16 +273,42 @@ No G6 declaration. No FL/II cutover. No root-key activation. No production autho
 No merge. **No authentication performed by the machine** — the gate refused this session, on the
 record, which is the point.
 
-## What remains yours
+## Founder authentication — completed by Kevin, verified here
 
-The WS48 and WS48-01a ledger rows are `Pending`. I cannot move them; `assert_founder_session()`
-refuses this session by design. From your own authenticated portal session:
+Performed 2026-08-28 10:29:11Z through `muon_founder_authenticate()`, the gated surface.
+Verified against the live ledger, not taken on report:
 
-```sql
-select public.muon_founder_authenticate(
-  array(select id from public.sovereign_execution_log
-        where human_review_status = 'Pending'
-          and action_description like 'WS48%'),
-  'AUTHENTICATED',
-  'Reviewed: narrow WS48 authorization, evidence verified.');
-```
+| Record | Status | reviewed_by | Notes |
+|---|---|---|---|
+| `SEL-20260828-B7B58931` (WS48) | **Approved** | Kevin A. Smith | via `muon_founder_authenticate()` |
+| `SEL-20260828-98421493` (WS48-01a) | **Approved** | Kevin A. Smith | via `muon_founder_authenticate()` |
+
+The decisive field is in `m2m_autonomic_log`: the `FOUNDER_AUTHENTICATION` event recorded
+`session_uid = 430a9d02-5f73-420e-b9b8-9f1b48920cb1`, which **matches the `founder_uid` constant
+compiled into `assert_founder_session()`** — checked programmatically, not by eye. A machine path
+cannot produce that value; `auth.uid()` is null for `service_role`, MCP, agent connections and the
+SQL editor, which is exactly why this session's own call was refused and recorded as WS48-02.
+
+So the loop closes on its own terms: the machine wrote the change and the evidence, the gate
+refused the machine, and the human authenticated through the only surface that can verify them.
+
+`SEL-20260827-AF9B1D84` — the original finding, which I deliberately did **not** mark superseded —
+was authenticated in the same batch. Leaving it in the queue was the right call; it got reviewed on
+its own merits rather than being retired by association.
+
+**SEL rows still Pending across the whole ledger: 0.**
+
+## Post-authentication state
+
+| Probe | Value |
+|---|---|
+| WS48-01 | `CONFORM` / `INFO` — 1 gated writer, 0 ungated, 0 service_role-reachable |
+| `eco_tasks` at `AUTHENTICATED` | 0 |
+| SEL rows Pending | 0 |
+| migration 369 | absent |
+| anon-executable `SECURITY DEFINER` functions | **9 — unchanged, still open** |
+
+Every other HOLD is where it was. The 9 anon-executable `SECURITY DEFINER` functions remain the
+next real piece of work: four of them write `m2m_conformance_audit` as owner, so an anon key holder
+can still inject conformance findings. That is evidence integrity, and it is still open at BLOCKING
+under WS24-03 since Aug 19. It is scoped separately and was not touched here.
