@@ -18,9 +18,9 @@ All ten migrations **APPLIED** to `jnmywpfdykuybrxkdcmc` under narrow Founder au
 | **WS48** `eco_authenticate` gated behind `assert_founder_session()` | `…095500`, `…095705` | WS48-01, WS48-02 `CONFORM` | **Approved** |
 | **WS49** anon `EXECUTE` closed across the `SECURITY DEFINER` surface | `…103722`, `…103841` | WS49-01 `CONFORM` | **Approved** |
 | **WS50** anon DML closed on an FL/II provenance view; WS31-01 rescoped | `…112312` | WS50-01, WS31-01 `CONFORM` | **Approved** |
-| **WS51** last provisional acceptance resolved | `…114500` | WS24-03 `CONFORM` | **Approved** |
-| **WS52** WS24-05 rescoped; working repo registered | `…115900` | WS24-05 `CONFORM` | **Approved** |
-| **WS53** Founder canonical designation recorded | `…120400` | — | **Approved** |
+| **WS51** last provisional acceptance resolved | `…112835` | WS24-03 `CONFORM` | **Approved** |
+| **WS52** WS24-05 rescoped; working repo registered | `…113530` | WS24-05 `CONFORM` | **Approved** |
+| **WS53** Founder canonical designation recorded | `…114108` | — | **Approved** |
 | **WS54** evidence-ledger join key; Series 001 indexed | `…124948`, `…125145` | WS54-01 `CONFORM` | **Approved** |
 | **WS55** refusal link added; Series 000 indexed (PR #1) | `…150739`, `…151118` | WS54-01 `CONFORM` | **Approved** |
 
@@ -122,4 +122,4 @@ Per Founder instruction 2026-08-28, scope is closed and these are **not** taken:
 
 No G6 declaration, no migration 369, no FL/II cutover, no root-key activation, no authority transfer, no merge. **No authentication performed by the machine** — the gate refused this session on the record, which is the point.
 
-Migration filenames match their **applied** versions so filename and `schema_migrations` agree.
+**Correction, 2026-08-28 (crosswalk pass).** An earlier version of this description claimed "migration filenames match their applied versions so filename and `schema_migrations` agree." That was false when published: WS51, WS52 and WS53 carried filenames from a draft numbering, and this table cited those wrong versions. Filenames are now renamed to the applied versions above, which the database owns. Third appearance of the DBC-001 defect class in seven days — citing an identifier from the artifact I wrote rather than from the catalog that owns it. See `docs/CROSSWALK-2026-08-28-atlas-cc.md` §5.
