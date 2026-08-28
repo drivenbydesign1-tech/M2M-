@@ -292,3 +292,49 @@ Atlas reports three workflows green on crosswalk head `7875a5cf` (Sovereign Secu
 Harness, Operational Core G2, repository-resilience) and no CI yet on `a102c54`. Both are
 **ASSERTION_ONLY** from this side — reported, not verified, and correctly flagged as
 not-yet-CI-verified by Atlas.
+
+---
+
+## 9 · WS47 closed — and §8.2 mischaracterised it
+
+Fixed under explicit Founder authorization 2026-08-28. Commit `d81b3c9` on
+`claude/2m-build-status-sequence-a4ya61` (PR #1's branch), pushed `4bd96e5..d81b3c9`.
+Filename only; the file body is byte-identical.
+
+**§8.2 called this "the fourth appearance of DBC-001." That is the wrong classification,
+and the direction it gets wrong is the interesting part.**
+
+DBC-001 was *my ledger rows citing migrations by name rather than version* — the **ledger**
+was wrong and the repository was right. WS47 is the inverse. Checked before renaming:
+
+```
+SEL-20260827-28AF3D1B   human_review_status = Approved
+deliverable_location    supabase/migrations/20260827133939_ws47_revoke_public_execute_…sql
+```
+
+The ledger records the **applied** version, correctly. The repository filed the same
+migration as `…134500`. So the citation was never wrong — **its target was missing.** An
+Approved, Founder-authenticated execution record had been pointing at a repository path
+that did not exist, from 2026-08-27 until now.
+
+That reframes the risk. A wrong citation is findable by reading the ledger. A *correct*
+citation whose target is absent is only findable by resolving the reference against the
+repository — which nothing in this stack was doing, because §2's hash bridge is the thing
+that would have done it, and it is circular and stale. The two findings are the same gap
+seen from opposite ends.
+
+It also explains why the fix direction is not arbitrary. The database is authoritative
+twice over here: it owns the applied version, *and* the already-approved ledger row names
+the corrected filename. The file moves to meet the record; the record was never edited.
+
+**Scope of the sweep, restated:** all 17 migrations on that branch, joined to the live
+catalog on migration name. One mismatch. WS46 — same day, same session, immediate
+predecessor — correct. Not drift; one hand-typed filename.
+
+Verified after the push: `origin/claude/2m-build-status-sequence-a4ya61` now carries
+`20260827133939_ws47_…`, and the repo-vs-catalog sweep across **both** branches (17 + 12 =
+29 migrations) returns **zero** mismatches.
+
+Corrected count for the record: **three** DBC-001 instances (two in PR #1's series, one
+being the WS51/52/53 rename), plus **one** inverse-direction instance (WS47). Not four of
+the same thing.
