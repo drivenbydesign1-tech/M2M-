@@ -2,7 +2,8 @@
 
 **Migration:** `supabase/migrations/20260828141500_ws48_eco_authenticate_founder_gate_and_detector.sql`
 **Detector:** `WS48-01`
-**Status:** written, **not applied**. Ledger row Pending.
+**Status:** **APPLIED** 2026-08-28 on narrow Founder authorization. Ledger rows Pending.
+**Applied versions:** `20260828095500` (WS48) · `20260828095705` (WS48-01a correction)
 **Prior record:** `SEL-20260827-AF9B1D84` (Held — recommended exactly this fix)
 
 ---
@@ -100,8 +101,10 @@ authcontain_tier3_interim_hardening`, which named itself interim.
 1. `ws48_authentication_surface_gate_check(uuid)` — additive, inert, shipped **before** the
    fix so the condition is visible even if only part is applied. Against today's schema it
    reports `DEVIATION / BLOCKING`; after step 2 it reaches `CONFORM`.
-2. `eco_authenticate` gated on `assert_founder_session()`, `SECURITY DEFINER`,
-   `search_path` pinned. Records the real `auth.uid()` as `session_uid` and sets
+2. `eco_authenticate` gated on `assert_founder_session()`, `SECURITY INVOKER` -> `SECURITY DEFINER`.
+   **Correction:** `search_path` was already pinned to `'public','pg_temp'` before this change;
+   an earlier draft of this record implied it was not. It is preserved verbatim, not added.
+   Records the real `auth.uid()` as `session_uid` and sets
    `attribution_verified = true` — previously hard-coded `false`, honestly, on the child
    row only, while the parent row's `auth_status` carried no such qualifier at all.
 3. EXECUTE moved: revoked from `service_role`, granted to `authenticated`.
@@ -117,11 +120,13 @@ from the review queue before it had been read.
 Executable, and safe: `eco_tasks` holds 1 row at `NOT_REQUIRED`, so no authentication has
 ever succeeded through this path and no data moves in either direction.
 
-**(a)** Restore the prior definition — `SECURITY INVOKER`, no `search_path`, exact prior body:
+**(a)** Restore the prior definition — `SECURITY INVOKER`, `search_path` as it already was, and
+note the `p_notes` default, whose omission would make `CREATE OR REPLACE` fail outright:
 
 ```sql
-CREATE OR REPLACE FUNCTION public.eco_authenticate(p_task_id uuid, p_decision text, p_notes text)
+CREATE OR REPLACE FUNCTION public.eco_authenticate(p_task_id uuid, p_decision text, p_notes text DEFAULT NULL::text)
 RETURNS jsonb LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   v_task eco_tasks%ROWTYPE; v_claude uuid; v_auth_task uuid;
@@ -188,4 +193,96 @@ select public.eco_authenticate('<task_id>','AUTHENTICATED','probe');
 -- 3. grants must read: authenticated only
 select pg_catalog.array_to_string(proacl,' | ') from pg_proc
 where proname = 'eco_authenticate';
+```
+
+
+---
+
+# Applied — evidence, 2026-08-28
+
+Authorized narrowly for WS48. Every other HOLD left where it was.
+
+## Two defects of mine, caught and corrected
+
+**1 · `search_path` was already pinned.** I wrote that this change pins it. It was already
+`'public','pg_temp'`. The real change is `SECURITY INVOKER` -> `SECURITY DEFINER` plus the gate.
+The rollback SQL above has been corrected — as first written it omitted both the `SET search_path`
+clause and the `p_notes DEFAULT NULL::text`, and **would have failed on execution**
+(`CREATE OR REPLACE` cannot remove an existing parameter default). Caught in pre-flight, before
+applying. The rollback path is the highest-value field in a change record and mine was wrong.
+
+**2 · WS48-01 counted itself.** Its universe was three `ILIKE` probes against `prosrc`
+(`%eco_tasks%`, `%auth_status%`, `%update%`). Its own body contains all three, so it reported
+**2** writers where the true answer is **1** — and scored itself `gated` because its text contains
+the *string* `assert_founder_session`, not because it calls it. That is the identical false
+positive I had documented in `ws31_flii_guard_bypass_check` one section earlier, and then walked
+into. Masked today (CONFORM either way), latent tomorrow: an edit dropping that literal would make
+the check flag *itself* as an ungated service_role-reachable writer — a DEVIATION it could never
+clear on a finding that was never true. Corrected in `20260828095705` (WS48-01a): universe is a
+structural match on `update [public.]eco_tasks`, gating is a structural match on a call site, and
+the function is excluded from its own scan with the exclusion **declared** in `scan_scope`.
+
+## Evidence
+
+**WS48-01 — CONFORM / INFO**
+
+```
+1 function(s) update eco_tasks.auth_status (eco_authenticate);
+0 of them do not call assert_founder_session();
+0 of those are EXECUTE-able by service_role;
+0 eco_tasks row(s) at AUTHENTICATED, 0 without a verified session attribution
+```
+
+**WS48-02 — CONFORM.** The refusal captured by execution, not asserted. The call was permitted to
+reach the gate and was stopped by it:
+
+```
+REFUSED :: FL/II REFUSED: no user session. Caller is service_role, MCP, an agent
+connection, or the SQL editor. Founder authentication requires the Founder session
+credential. :: eco_tasks rows before=1 after=1
+```
+
+**Grants, live:**
+
+| function | SECDEF | gated | anon | authenticated | service_role |
+|---|---|---|---|---|---|
+| `eco_authenticate` | yes | yes | no | **yes** | **no** |
+| `ws48_authentication_surface_gate_check` | yes | n/a | no | no | yes |
+
+`eco_authenticate` ACL is now `postgres=X | authenticated=X` — the house pattern exactly.
+
+### A note on the first WS48-02 row
+
+My first probe row was written **without** `scan_scope` and your own
+`trg_bp004_scan_provenance_gate` downgraded it to `UNVERIFIABLE` on insert. That is the platform
+control working correctly against a malformed finding of mine. The row is left in place rather than
+deleted — it is evidence the guard fires — and a correctly scoped WS48-02 was inserted alongside it.
+
+## Every other HOLD, confirmed untouched
+
+| Probe | Value |
+|---|---|
+| `eco_tasks` rows | 1 |
+| `eco_tasks` at `AUTHENTICATED` | **0** |
+| SEL rows moved to Approved today | **0** |
+| SEL rows Pending | 4 |
+| migration 369 present | **false** |
+| latest migrations | `20260828095705 ws48_01a...` · `20260828095500 ws48_...` |
+
+No G6 declaration. No FL/II cutover. No root-key activation. No production authority transfer.
+No merge. **No authentication performed by the machine** — the gate refused this session, on the
+record, which is the point.
+
+## What remains yours
+
+The WS48 and WS48-01a ledger rows are `Pending`. I cannot move them; `assert_founder_session()`
+refuses this session by design. From your own authenticated portal session:
+
+```sql
+select public.muon_founder_authenticate(
+  array(select id from public.sovereign_execution_log
+        where human_review_status = 'Pending'
+          and action_description like 'WS48%'),
+  'AUTHENTICATED',
+  'Reviewed: narrow WS48 authorization, evidence verified.');
 ```

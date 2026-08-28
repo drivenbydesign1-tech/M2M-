@@ -154,13 +154,16 @@ comment on function public.ws48_authentication_surface_gate_check(uuid) is
 
 
 -- ---------------------------------------------------------------------------
--- 2 · Gate the function body
+-- 2 · Gate the function body (SECURITY INVOKER -> DEFINER; search_path already pinned)
 --
 --     The role-containment check added by 20260824005933
 --     (authcontain_tier3_interim_hardening) was explicitly interim. It is
 --     superseded here, not merely supplemented: keeping it would reject the
 --     Founder's own session (current_user = 'authenticated') and so make the
 --     function unreachable by the only caller permitted to satisfy the gate.
+--
+--     search_path was ALREADY pinned to 'public','pg_temp' before this change and is
+--     preserved verbatim. The change here is SECURITY INVOKER -> DEFINER plus the gate.
 --
 --     Body shape follows public.muon_founder_authenticate verbatim: gate first,
 --     validate decision, canonical actor literal for fn_sel_audit_guard's
@@ -169,11 +172,11 @@ comment on function public.ws48_authentication_surface_gate_check(uuid) is
 create or replace function public.eco_authenticate(
   p_task_id  uuid,
   p_decision text,
-  p_notes    text)
+  p_notes    text default null::text)
 returns jsonb
 language plpgsql
 security definer
-set search_path to 'public'
+set search_path to 'public', 'pg_temp'
 as $function$
 declare
   v_task      eco_tasks%rowtype;
@@ -306,7 +309,7 @@ values (
   'Function gated and grants moved. WS48-01 created and wired into ws10_conformance_daily. NO authentication performed, NO eco_tasks row written, NO G6 declaration, NO migration 369, NO FL/II cutover, NO root-key activation, NO production authority transfer. The bypass was deliberately NOT demonstrated by execution — calling eco_authenticate to prove it would have manufactured the exact false authorization record this change prevents.',
   'Static verification against live catalogs in project jnmywpfdykuybrxkdcmc: pg_proc.prosrc, pg_proc.proacl, has_function_privilege(), cron.job, and a read-only probe of current_user / auth.uid(). No authentication, no write to eco_tasks or eco_models.',
   'Restore the prior definition and grants:
-   (a) CREATE OR REPLACE FUNCTION public.eco_authenticate(uuid,text,text) with SECURITY INVOKER, no SET search_path, the body beginning
+   (a) CREATE OR REPLACE FUNCTION public.eco_authenticate(p_task_id uuid, p_decision text, p_notes text DEFAULT NULL::text) with SECURITY INVOKER, SET search_path TO ''public'', ''pg_temp'' (which the prior definition already carried), the body beginning
        IF current_user NOT IN (''service_role'',''postgres'',''supabase_admin'') THEN RAISE EXCEPTION ''AUTH-CONTAINMENT: unauthorized caller role %'', current_user USING ERRCODE = ''42501''; END IF;
        and metadata built without session_uid / attribution_verified — the exact text is preserved in docs/CHANGE-2026-08-28-eco-authenticate-founder-gate.md;
    (b) REVOKE EXECUTE ... FROM authenticated; GRANT EXECUTE ... TO service_role;
