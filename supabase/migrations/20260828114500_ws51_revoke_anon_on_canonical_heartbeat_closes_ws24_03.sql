@@ -1,0 +1,43 @@
+-- ============================================================================
+-- WS51 · Resolve the provisional acceptance. Closes WS24-03.
+--
+-- WS49-01a accepted anon EXECUTE on fn_canonical_last_write PROVISIONALLY: the
+-- grant was inherited from PUBLIC rather than designed, but no consumer had been
+-- identified and breaking an unidentified consumer was judged the worse risk at
+-- that moment. It was the last entry holding WS24-03 at DEVIATION / BLOCKING.
+--
+-- DUE DILIGENCE BEFORE REVOKING -- internal dependants enumerated:
+--   function references : ws49_anon_definer_surface_check (names it in an
+--                         allowlist string only, not a call)
+--   view references     : v_ws7_source_of_record, granted only to postgres and
+--                         service_role, and owner-executing, so it does not
+--                         depend on the caller's grant
+--   cron references     : none
+--   constraints/defaults: none
+-- No internal consumer requires the anon grant. Any remaining consumer would be
+-- an external caller holding the anon key, which this session cannot observe --
+-- which is why the acceptance was provisional and the decision the Founder's.
+--
+-- Founder authorised the revoke 2026-08-28. Reversal is one line plus re-adding
+-- the name to WS49-01's allowlist (four-entry body preserved in 20260828112312).
+--
+-- Full reasoning and evidence: docs/CHANGE-2026-08-28-flii-view-write-exposure.md
+-- ============================================================================
+
+revoke execute on function public.fn_canonical_last_write() from anon;
+
+-- WS49-01's allowlist returns to the three surfaces anon-reachable BY DESIGN.
+-- Body otherwise unchanged from 20260828112312 except the allowlist and two
+-- evidence fields ('provisional_acceptance_resolved', 'coverage_note').
+-- Retrieve the live text with pg_get_functiondef('public.ws49_anon_definer_surface_check'::regproc).
+--
+--   c_accepted := array['submit_whistleblower_report',
+--                       'whistleblower_report_status',
+--                       'roi_result_by_token'];
+--
+-- Verified after applying:
+--   WS49-01  CONFORM  3 anon-EXECUTE-able, 3 accepted, 0 unexpected
+--   WS24-03  CONFORM  (was DEVIATION / BLOCKING; observed 'none')
+--   WS24-01  CONFORM  0 anon-reachable owner-executing views
+--
+-- Ledger row inserted at apply time (Pending).
