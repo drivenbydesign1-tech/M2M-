@@ -203,3 +203,92 @@ Not questions about opinion. Each has a definite answer readable from the canoni
 
 The two histories stay **explicitly separate until reconciled.** Neither repository proves
 the other. This document is one half of a crosswalk, and says so.
+
+---
+
+## 8 · Addendum — Atlas pass 2 returned, 2026-08-28
+
+Appended, not edited. Sections 0–7 stand as originally written.
+
+### 8.1 · Atlas's WS47 finding: CONFIRMED by execution, and it is mine
+
+Atlas reports that the working tree names WS47 `20260827134500` while the contemporaneous
+record reports the applied version as `20260827133939`. **Verified here against two primary
+sources**, not accepted on report:
+
+| Source | Value |
+|---|---|
+| `origin/claude/2m-build-status-sequence-a4ya61` (PR #1 branch, git tree) | `20260827134500_ws47_revoke_public_execute_on_new_security_definer_functions.sql` |
+| `supabase_migrations.schema_migrations` (live catalog) | `20260827133939` · `ws47_revoke_public_execute_on_new_security_definer_functions` |
+
+Rather than confirm only the row Atlas named, all **17** migrations on that branch were
+swept by joining repo filename against the catalog on migration *name*. Result: **1 of 17
+mismatched.** WS47 alone. WS43 ×4, WS44, WS45, WS46, the four `muon_*`, and the five
+`m2m_*`/`loop_*` all agree exactly. WS46 — the immediate predecessor, same day, same
+session — is correct, which rules out a clock or convention drift and isolates it to a
+single hand-written filename.
+
+**WS47 is NOT corrected here.** It lives on PR #1's branch, which is not this session's
+designated branch; pushing to it requires explicit permission. Recorded as open.
+
+### 8.2 · The correct occurrence count is four, and my own PR understated it
+
+PR #2's correction item 8 calls the WS51/52/53 rename "the third appearance of the DBC-001
+defect class in seven days." With WS47 confirmed, that is wrong. The true sequence:
+
+| # | When | Where | Status |
+|---|---|---|---|
+| 1 | 2026-08-22/23 | DBC-001 — SEL rows citing migrations by *name*, not *version* | corrected in PR #1 |
+| 2 | 2026-08-22/23 | recurrence, same series, after correction #1 | corrected |
+| 3 | **2026-08-27** | **WS47 filename `134500` vs applied `133939`** | **OPEN** |
+| 4 | 2026-08-28 | WS51/52/53 filenames vs applied versions | corrected, `18951e1` |
+
+Four occurrences in seven days, one still open. Corrected in the PR body.
+
+### 8.3 · Series 000 indexed PR #1 and did not catch this
+
+This is the more serious half. `WS55` indexed PR #1's twelve commits as SERIES-000 and
+reported them "verified against the commits read from the GitHub API rather than the PR
+body, and against live rows." That verification checked **that the 14 named SEL records
+exist and are Approved**. It never checked whether each migration's repo filename agrees
+with its applied version.
+
+So a 26-row evidence index built specifically to preserve defects passed over a live,
+uncorrected instance of the exact defect class it was indexing. The index verified
+*citation existence*, not *identifier agreement* — a narrower question than the one it
+appeared to answer. Same shape as WS31-01 matching mentions instead of assignments: a
+check whose stated scope is wider than its actual predicate.
+
+Atlas found it from the canonical side. That is the crosswalk working as intended, in the
+direction that matters — the other party catching what this side's own index missed.
+
+### 8.4 · Atlas's port gate
+
+The proposed chain — live catalog → exact migration version → working artifact →
+**independent repository-byte hash** → predecessor compatibility → rollback → canonical CI
+→ adversarial review → Founder disposition — closes §2's circularity finding at the right
+point. "Independent repository-byte hash" is the correct specification: it must be computed
+by a normaliser that has never read the database, or it reproduces
+`v1-reconstructed-functional` under a new name. Recommend the gate state that constraint
+explicitly rather than leaving it to the implementer.
+
+One addition, from 8.1: the gate's *predecessor compatibility* step must treat WS47 as
+**open**, not merely present. WS46 and WS47 sit between canonical WS45 and WS48, and WS47's
+repo filename does not name the version that actually applied. Porting WS48–WS55 over a
+predecessor whose identifier is wrong would carry the defect into canonical.
+
+### 8.5 · Slot status after this pass
+
+| Slot | Status |
+|---|---|
+| 1 · PR #5 / #14 identity | **partially answered** — PR #14 reported mergeable=true, draft, unmerged, 11 ahead / 0 behind; earlier mergeable=false was transient GitHub computation. PR #5 still unaddressed. |
+| 2 · `mcp/hardening-reconciliation-001` commits | **still ASSERTION_ONLY** — `3d15017`, `7a6a8c7`, `f73971a`, `931ef37`, `a102c54` all unreadable from here |
+| 3 · what the hash poster hashes | **open** — the §2 finding stands unrefuted |
+| 4 · which repo the four `git_sha` values belong to | **open** |
+| 5 · migration overlap canonical ↔ WS48–WS55 | **advanced** — port assessment exists; WS46/WS47 identified as the intervening gap |
+| 6 · duplicate/conflicting claims | **open** |
+
+Atlas reports three workflows green on crosswalk head `7875a5cf` (Sovereign Security
+Harness, Operational Core G2, repository-resilience) and no CI yet on `a102c54`. Both are
+**ASSERTION_ONLY** from this side — reported, not verified, and correctly flagged as
+not-yet-CI-verified by Atlas.
