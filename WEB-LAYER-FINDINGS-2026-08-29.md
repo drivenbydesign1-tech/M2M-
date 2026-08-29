@@ -1,5 +1,36 @@
 # M2M Web Layer — findings, 2026-08-29
 
+> **PARTIALLY SUPERSEDED by the handoff update of 2026-08-29 (post-verification).**
+> Read these three corrections before the rest of this document.
+>
+> **1. The 27 deleted rows are resolved — stand down.** Attributed via
+> `pg_stat_statements`: every deletion ran as `postgres`, matched
+> `WHERE email LIKE $1`, and sat alongside a counter named `remaining_test_rows`.
+> The orphan `intake_id aeb8e4d0…` flagged below resolves to
+> `qa+1786486417@m2msovereign.test` / "QA Spotcheck". The 27 inserts span five
+> payload shapes — iterative development, not 27 leads. Residual noted by Kev:
+> normalized parameters make the LIKE patterns unreadable and three deletes were
+> targeted `WHERE id = $1`, so it is not *provably* zero real leads; the dead
+> tuples remain on disk unvacuumed if it ever needs settling. **The section
+> below headed "Headline" overstates this. It is not the headline.**
+>
+> **2. Intake capture is verified operational.** A live end-to-end POST to the
+> Edge Function (no auth header, as the browser sends it) returned HTTP 200 in
+> 1.73s with `{"ok":true,"capture":"primary","notify":"ok"}` and the row landed
+> correctly. Do not re-investigate.
+>
+> **3. The priority order changed.** `r(!0)` firing outside the try/catch on all
+> three intake lanes is now priority 1 — it is the only defect that loses real
+> leads. The `console.log` email grab is priority 2. Worker + beacon is
+> priority 3. See **`APEX-INTAKE-PATCH-SPEC.md`** for the verified,
+> ready-to-apply spec.
+>
+> New in the database since this document was written: `m2m_intake_deletion_ledger`
+> + `tg_guard_delete` on the intake tables (archives every delete with attribution;
+> refuses deletes of more than 5 rows without `SET LOCAL m2m.allow_bulk_delete = 'on'`),
+> and the `v_intake_health` view. **If a cleanup script starts failing, that guard
+> is working — add the `SET LOCAL` line, do not drop the trigger.**
+
 Execution notes against the Claude Code handoff. Written for the next session,
 which will need to start against a different repository (see Task 2).
 
@@ -9,7 +40,7 @@ written, altered or deleted. `authenticate_sovereign_task()` was not run.
 
 ---
 
-## Headline: the missing intake data has a different cause than the handoff assumed
+## ~~Headline~~ — SUPERSEDED, see correction 1 above. Retained for the investigation trail.
 
 The handoff attributes three months of missing intake to the PIVOT OS landing
 form discarding emails. That form **is** broken exactly as described, but it is a
