@@ -129,27 +129,39 @@ both exist.
 
 ---
 
-## One decision needed before the Worker ships
+## Beacon API — DECIDED: `attempt` / `ok` / `fail`
 
-The beacon API is specified two different ways, and it should be one:
+Settled by Kev, 2026-08-29. The Worker implements **one** API:
 
-- The assessment app, as patched and merged in this repo, calls
-  **`window.m2m.formView(kind, extra)`**.
-- This handoff's fix shape calls **`m2m.attempt(name)` / `m2m.ok(name)` /
-  `m2m.fail(name, err)`**.
+| Verb | Meaning |
+|---|---|
+| `m2m.attempt(name)` | submit started |
+| `m2m.ok(name)` | submit landed |
+| `m2m.fail(name, err)` | submit lost |
 
-Both are guarded so neither breaks today, but the Worker will have to implement
-whichever one wins — and if it implements only one, the other surface goes
-silently unmeasured, which is the failure mode this whole effort exists to kill.
+`attempt` paired with `ok` is what makes an abandonment rate computable — the
+reason this won over `formView`, which cannot distinguish a started submit from a
+completed one.
 
-**Recommendation: standardise on `attempt`/`ok`/`fail`.** It distinguishes a
-started submit from a completed one, which is what makes an abandonment rate
-computable; `formView` cannot express that. The assessment app's
-`sbInsertTraffic` is a two-line change to match, and it already writes the
-`outcome` column that maps onto it. Say the word and I will make that change
-here — it is in a repo this session can reach.
+The assessment app has been migrated and merged: `window.m2m.formView` is gone,
+replaced by a `beacon(verb, name, err)` helper under form name `switch_index`.
+Two properties the Worker should preserve on the apex side as well:
 
----
+- **The beacon owns the success event when live.** `beacon('ok', …)` returns
+  whether the beacon actually took the event; only if it did not does the app
+  write its own `form_submit` row. Without that the two double-count.
+- **A throwing or half-implemented beacon must not swallow the event.** Every
+  call is try/caught and returns `false` on throw, so the direct insert still
+  runs. Verified by test.
+
+Failures are deliberately recorded twice — `beacon('fail', …)` *and* the local
+`m2mFail()` path that writes `form_error`. For a lost submission, redundancy is
+the point.
+
+Note for the apex lanes: `attempt`/`ok`/`fail` has no verb for a *view*. The
+assessment app keeps view events as a direct `m2m_web_traffic` insert. If the
+Worker wants view telemetry, that is a separate verb to design, not a reuse of
+these three.
 
 ## Small gap in the new delete guard
 

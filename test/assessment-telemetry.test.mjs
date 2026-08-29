@@ -129,15 +129,60 @@ console.log('assessment telemetry');
     'n=' + ctx.__m2mFailures.length);
 }
 
-// --- composes with the Cloudflare Worker beacon once it is live ---
+// --- speaks the shared attempt/ok/fail vocabulary when the Worker is live ---
 {
-  const { ctx } = load({ supabaseLoaded: false });
-  const before = ctx.__m2mFailures.length;
-  let seen = null;
-  ctx.window.m2m = { formView: (k, x) => { seen = { k, x }; } };
+  const { ctx, inserts } = load();
+  const calls = [];
+  ctx.window.m2m = {
+    attempt: n => calls.push(['attempt', n]),
+    ok: n => calls.push(['ok', n]),
+    fail: (n, e) => calls.push(['fail', n, e]),
+  };
+  await ctx.sbInsertAssessment({ composite_score: 50 });
+  check('successful submit emits attempt then ok',
+    JSON.stringify(calls) === JSON.stringify([['attempt', 'switch_index'], ['ok', 'switch_index']]),
+    JSON.stringify(calls));
+  check('beacon owns the success event, no duplicate traffic row',
+    inserts.filter(i => i.row.event_kind === 'form_submit').length === 0);
+}
+
+// --- a failed submit reaches the beacon as fail, and is still recorded locally ---
+{
+  const { ctx, inserts } = load();
+  const calls = [];
+  ctx.window.m2m = {
+    attempt: n => calls.push(['attempt', n]),
+    ok: n => calls.push(['ok', n]),
+    fail: (n, e) => calls.push(['fail', n, e]),
+  };
+  await ctx.sbInsertAssessment({ __forceErr: true });
+  check('failed submit emits attempt then fail',
+    calls.map(c => c[0]).join(',') === 'attempt,fail', JSON.stringify(calls.map(c => c[0])));
+  check('failure still recorded locally when beacon is live', ctx.__m2mFailures.length === 1);
+  check('failure still persisted as a form_error row',
+    inserts.some(i => i.row.event_kind === 'form_error'));
+}
+
+// --- a broken beacon must not swallow the event ---
+{
+  const { ctx, inserts } = load();
+  ctx.window.m2m = { attempt: () => { throw new Error('beacon down'); },
+                     ok: () => { throw new Error('beacon down'); },
+                     fail: () => { throw new Error('beacon down'); } };
+  await ctx.sbInsertAssessment({ composite_score: 50 });
+  check('throwing beacon falls back to the direct traffic row',
+    inserts.some(i => i.row.event_kind === 'form_submit'));
+}
+
+// --- with no Worker, everything still lands directly ---
+{
+  const { ctx, inserts } = load();
+  await ctx.sbInsertAssessment({ composite_score: 50 });
+  check('absent beacon writes the fallback traffic row',
+    inserts.some(i => i.row.event_kind === 'form_submit'));
   await ctx.sbInsertTraffic('form_view', { outcome: 'ok' });
-  check('prefers window.m2m.formView when present', seen && seen.k === 'form_view');
-  check('beacon path logs no failure', ctx.__m2mFailures.length === before);
+  check('view events stay a direct insert (no attempt/ok/fail verb for a view)',
+    inserts.at(-1).table === 'm2m_web_traffic' && inserts.at(-1).row.event_kind === 'form_view');
 }
 
 console.log(failures ? `\n${failures} FAILED` : '\nall passed');

@@ -525,12 +525,9 @@ function buildAssessmentRow(briefing){
 }
 
 // Telemetry events go to m2m_web_traffic, never to m2m_switch_assessments, so a row in
-// that table always means a real person finished the Index. Prefers the edge beacon
-// (window.m2m.formView) when the Worker is live; falls back to a direct anon insert.
+// that table always means a real person finished the Index. Direct anon insert; this is
+// the fallback writer when the edge beacon is not live.
 async function sbInsertTraffic(kind,extra){
-  if(window.m2m&&typeof window.m2m.formView==='function'){
-    try{ window.m2m.formView(kind,extra||{}); return; }catch(e){ /* fall through to direct insert */ }
-  }
   if(!sbClient){ m2mFail('traffic-insert','no supabase client; event "'+kind+'" dropped'); return; }
   try{
     const {error}=await sbClient.from('m2m_web_traffic').insert(trafficRow(kind,extra));
@@ -538,20 +535,36 @@ async function sbInsertTraffic(kind,extra){
   }catch(e){ m2mFail('traffic-insert',e); }
 }
 
+// ── EDGE BEACON ──
+// One vocabulary shared with the apex intake lanes so the Cloudflare Worker implements a
+// single API: attempt (submit started) / ok (submit landed) / fail (submit lost).
+// attempt+ok is what makes an abandonment rate computable; a view-only call cannot.
+// Returns true only if the beacon actually took the event, so the caller knows whether
+// the fallback row is still needed. Absent Worker => always false, and nothing breaks.
+const FORM_NAME='switch_index';
+function beacon(verb,name,err){
+  const m=window.m2m;
+  if(!m||typeof m[verb]!=='function') return false;
+  try{ verb==='fail'?m.fail(name,err):m[verb](name); return true; }catch(e){ return false; }
+}
+
 // Real completed assessments only (briefing_requested=true). Fire-and-forget so it never
 // blocks the submit UX, but never silent: every failure is recorded via m2mFail.
 async function sbInsertAssessment(row){
+  beacon('attempt',FORM_NAME);
   if(!sbClient){ m2mFail('assessment-insert','no supabase client; assessment row dropped'); return; }
   try{
     const {error}=await sbClient.from('m2m_switch_assessments').insert(row);
-    if(error){ m2mFail('assessment-insert',error); return; }
-    sbInsertTraffic('form_submit',{outcome:'ok'});
-  }catch(e){ m2mFail('assessment-insert',e); }
+    if(error){ beacon('fail',FORM_NAME,error); m2mFail('assessment-insert',error); return; }
+    // Beacon owns the success event when live, so the two never double-count.
+    if(!beacon('ok',FORM_NAME)) sbInsertTraffic('form_submit',{outcome:'ok'});
+  }catch(e){ beacon('fail',FORM_NAME,e); m2mFail('assessment-insert',e); }
 }
 
 // View event: one row per session once a context is chosen and the sliders settle.
 // Was writing into m2m_switch_assessments, inflating that table with auto-fired views
 // separable from real submissions only by briefing_requested. Now a traffic event.
+// Stays a direct insert: attempt/ok/fail describes submits and has no verb for a view.
 let viewLogged=false, viewTimer=null;
 function scheduleAssessmentView(){
   if(viewLogged||!ctx) return;
