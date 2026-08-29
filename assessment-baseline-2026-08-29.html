@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2M~Inc. | Sovereign Diagnostic Platform</title>
+<meta name="description" content="The M2M Three-OS Sovereign Diagnostic Platform. S.W.I.T.C.H.™ Index — PIVOT OS™, BRIDGE OS™, Human OS™. Veteran-owned. SDVOSB certified.">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0A1628;--navy-mid:#1a2d4a;--gold:#C9A84C;--gold-dim:rgba(201,168,76,0.13);--gold-glow:rgba(201,168,76,0.28);--pivot:#378ADD;--bridge:#1D9E75;--w:rgba(255,255,255,0.55);--wf:rgba(255,255,255,0.1);--b:rgba(201,168,76,0.13)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh}
+body{background:var(--navy);font-family:'DM Sans',sans-serif;color:#fff;background-image:radial-gradient(circle,rgba(201,168,76,0.16) 1px,transparent 1px),linear-gradient(rgba(201,168,76,0.032) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.032) 1px,transparent 1px);background-size:48px 48px,48px 48px,48px 48px}
+
+/* ── HEADER ── */
+.hdr{background:rgba(10,22,40,0.97);border-bottom:.5px solid var(--b);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;backdrop-filter:blur(12px)}
+.mk{font-size:10px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:3px;font-weight:500}
+.tt{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;letter-spacing:-.01em}
+.badge{font-size:9px;background:rgba(201,168,76,0.09);border:.5px solid rgba(201,168,76,0.32);color:var(--gold);padding:4px 12px;border-radius:20px;letter-spacing:.07em;text-transform:uppercase}
+.hsub{font-size:9px;color:rgba(255,255,255,0.25);margin-top:5px;text-align:right;letter-spacing:.04em}
+
+/* ── TABS ── */
+.tabs{display:flex;background:rgba(10,22,40,0.93);border-bottom:.5px solid var(--b);backdrop-filter:blur(6px)}
+.tab{flex:1;padding:12px 6px;background:transparent;border:none;border-bottom:2.5px solid transparent;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,255,255,0.28)}
+.tab .tl{font-size:11px;font-weight:500;letter-spacing:.02em;font-family:'DM Sans',sans-serif;transition:color .2s}
+.tab .ts{font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+.tab.sw.on{border-bottom-color:var(--gold);color:var(--gold)}
+.tab.pv.on{border-bottom-color:var(--pivot);color:var(--pivot)}
+.tab.br.on{border-bottom-color:var(--bridge);color:var(--bridge)}
+.tab.hu.on{border-bottom-color:var(--gold);color:var(--gold)}
+.tab:hover:not(.on){color:rgba(255,255,255,0.55)}
+
+/* ── LAYOUT ── */
+.wrap{padding:22px 20px 40px;max-width:800px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+
+.ey{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:6px}
+.h2{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;line-height:1.2;margin-bottom:8px}
+.bd{font-size:13px;color:var(--w);line-height:1.65;margin-bottom:18px}
+
+/* ── CONTEXT SELECTOR ── */
+.ctx-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:8px;font-weight:500}
+.ctx-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.ctx-btn{padding:7px 15px;background:transparent;border:.5px solid rgba(255,255,255,0.16);border-radius:20px;color:rgba(255,255,255,0.42);font-size:11px;letter-spacing:.05em;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;text-transform:uppercase}
+.ctx-btn.on{background:rgba(201,168,76,0.11);border-color:var(--gold);color:var(--gold)}
+
+/* ── HEX NODES ── */
+.hex-row{display:flex;justify-content:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.hex{width:46px;height:46px;border-radius:50%;background:rgba(201,168,76,0.07);border:.5px solid rgba(201,168,76,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .35s}
+.hex .hl{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:700;color:var(--gold)}
+.hex .hv{font-size:9px;color:rgba(201,168,76,0.6);margin-top:1px}
+.hex.hi{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.48);box-shadow:0 0 14px rgba(201,168,76,0.14)}
+
+/* ── SCORE CARD ── */
+.sc{background:rgba(26,45,74,0.55);border:.5px solid var(--b);border-radius:8px;padding:18px 20px;display:flex;align-items:center;gap:20px;margin-bottom:16px;backdrop-filter:blur(6px)}
+.sn{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:700;line-height:1}
+.sd{font-size:10px;color:rgba(255,255,255,0.28);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.sl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;margin-bottom:5px}
+.sv{font-size:12px;color:var(--w);line-height:1.65;margin-top:8px}
+.bar{width:100%;height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-top:4px}
+.bf{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* ── ROUTE BUTTON ── */
+.rb{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 15px;background:transparent;border:.5px solid var(--gold);color:var(--gold);border-radius:4px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.rb:hover{background:rgba(201,168,76,0.1)}
+
+/* ── DIMENSION CARDS ── */
+.dg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dg1{display:grid;grid-template-columns:1fr;gap:10px}
+.dc{background:rgba(26,45,74,0.5);border:.5px solid var(--b);border-radius:7px;padding:14px 16px;border-left:2.5px solid transparent;backdrop-filter:blur(4px)}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px}
+.dn{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;margin-bottom:2px}
+.dd{font-size:11px;color:rgba(255,255,255,0.37);line-height:1.45}
+.dv{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:700;min-width:28px;text-align:right}
+
+/* ── SLIDERS ── */
+input[type=range]{width:100%;appearance:none;height:2px;outline:none;cursor:pointer;border-radius:1px}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;border-radius:50%;background:var(--tc,#C9A84C);cursor:pointer;border:1.5px solid rgba(255,255,255,0.14);box-shadow:0 0 8px var(--tg,rgba(201,168,76,0.3));transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--tc,#C9A84C);border:1.5px solid rgba(255,255,255,0.14);cursor:pointer}
+
+/* ── THRESHOLD NOTE ── */
+.thr{font-size:10px;color:rgba(255,255,255,0.22);letter-spacing:.03em;margin-top:12px;line-height:1.55;font-style:italic}
+
+/* ── COMPOSITE ── */
+.comp{background:rgba(10,22,40,0.88);border:.5px solid rgba(201,168,76,0.2);border-radius:8px;padding:20px;margin-top:22px}
+.cg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.ci{text-align:center}
+.cn{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;line-height:1}
+.cl{font-size:9px;color:rgba(255,255,255,0.26);letter-spacing:.07em;text-transform:uppercase;margin-top:6px}
+.cta{width:100%;padding:13px;background:linear-gradient(135deg,#C9A84C 0%,#a8842a 100%);border:none;border-radius:6px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;transition:opacity .2s,transform .15s}
+.cta:hover{opacity:.88;transform:translateY(-1px)}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(4,10,22,0.9);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
+.modal-bg.on{display:flex}
+.modal{background:var(--navy);background-image:radial-gradient(circle,rgba(201,168,76,0.13) 1px,transparent 1px),linear-gradient(rgba(201,168,76,0.028) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.028) 1px,transparent 1px);background-size:40px 40px,40px 40px,40px 40px;border:.5px solid rgba(201,168,76,0.24);border-radius:10px;padding:32px 28px;max-width:440px;width:92%;position:relative}
+.modal-x{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,0.3);font-size:22px;cursor:pointer;line-height:1;transition:color .2s;font-family:serif}
+.modal-x:hover{color:var(--gold)}
+.modal-ey{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:5px}
+.modal-h{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;margin-bottom:6px;line-height:1.2}
+.modal-sub{font-size:12px;color:var(--w);line-height:1.6;margin-bottom:22px}
+.modal-div{height:.5px;background:rgba(201,168,76,0.12);margin-bottom:22px}
+.fl{margin-bottom:16px}
+.fl label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px;display:block;font-weight:500}
+.fi{width:100%;background:rgba(26,45,74,0.65);border:.5px solid rgba(201,168,76,0.18);border-radius:5px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:#fff;outline:none;transition:border-color .2s}
+.fi:focus{border-color:rgba(201,168,76,0.42)}
+.fi::placeholder{color:rgba(255,255,255,0.22)}
+.modal-cta{width:100%;padding:13px;background:linear-gradient(135deg,#C9A84C,#a8842a);border:none;border-radius:6px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.modal-cta:hover{opacity:.88}
+.modal-cta:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── CONFIRMATION ── */
+.confirm{display:none;text-align:center;padding:20px 0}
+.confirm-icon{font-family:'Cormorant Garamond',serif;font-size:44px;color:var(--gold);margin-bottom:12px}
+.confirm-h{font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:8px}
+.confirm-sub{font-size:12px;color:var(--w);line-height:1.7}
+.confirm-mark{color:var(--gold);font-size:11px;letter-spacing:.07em;margin-top:14px;display:block;font-family:'Cormorant Garamond',serif;font-style:italic}
+
+/* ── FOOTER ── */
+.foot{border-top:.5px solid var(--b);padding:13px 24px;display:flex;justify-content:space-between;align-items:center;background:rgba(10,22,40,0.65);font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:.05em;flex-wrap:wrap;gap:7px}
+.foot-mark{font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(201,168,76,0.38);font-size:11px}
+.axiom-line{flex-basis:100%;text-align:center;margin-top:9px;padding-top:9px;border-top:.5px solid var(--b);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,0.3);text-transform:uppercase}
+.axiom-line b{color:var(--gold);font-weight:600;letter-spacing:.1em}
+
+/* ── ERROR ── */
+.err{font-size:11px;color:#e57373;margin-top:5px;display:none}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="hdr">
+  <div>
+    <div class="mk">M2M~Inc.</div>
+    <div class="tt">Sovereign Diagnostic Platform</div>
+  </div>
+  <div style="text-align:right">
+    <div class="badge">Authenticated Executive Assessment</div>
+    <div class="hsub">Three-OS Platform · S.W.I.T.C.H.™ Index</div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<nav class="tabs" role="tablist">
+  <button class="tab sw on" onclick="goTab('sw')" role="tab" aria-selected="true">
+    <span class="tl">S.W.I.T.C.H.™</span><span class="ts">Core Diagnostic</span>
+  </button>
+  <button class="tab pv" onclick="goTab('pv')" role="tab">
+    <span class="tl">PIVOT OS™</span><span class="ts">The Individual</span>
+  </button>
+  <button class="tab br" onclick="goTab('br')" role="tab">
+    <span class="tl">BRIDGE OS™</span><span class="ts">The Organization</span>
+  </button>
+  <button class="tab hu" onclick="goTab('hu')" role="tab">
+    <span class="tl">Human OS™</span><span class="ts">The Culture</span>
+  </button>
+</nav>
+
+<main class="wrap">
+
+  <!-- ═══ S.W.I.T.C.H.™ PANEL ═══ -->
+  <section class="panel on" id="p-sw" role="tabpanel">
+    <div class="ey" style="color:var(--gold)">Core Diagnostic</div>
+    <h1 class="h2">The S.W.I.T.C.H.™ Index</h1>
+    <p class="bd">Unlike legacy behavioral models built for stable institutions, S.W.I.T.C.H.™ measures identity under pressure and transformation capacity for the disruption era. Select your context — then assess each dimension with honesty, not aspiration.</p>
+
+    <div class="ctx-label">I am assessing — select your context</div>
+    <div class="ctx-row">
+      <button class="ctx-btn" onclick="setCtx('individual',this)">Individual Reinvention</button>
+      <button class="ctx-btn" onclick="setCtx('org',this)">Organizational Change</button>
+      <button class="ctx-btn" onclick="setCtx('enterprise',this)">Enterprise Culture</button>
+    </div>
+
+    <div class="hex-row" aria-hidden="true">
+      <div class="hex" id="hx-S"><span class="hl">S</span><span class="hv" id="hxv-S">5</span></div>
+      <div class="hex" id="hx-W"><span class="hl">W</span><span class="hv" id="hxv-W">5</span></div>
+      <div class="hex" id="hx-I"><span class="hl">I</span><span class="hv" id="hxv-I">5</span></div>
+      <div class="hex" id="hx-T"><span class="hl">T</span><span class="hv" id="hxv-T">5</span></div>
+      <div class="hex" id="hx-C"><span class="hl">C</span><span class="hv" id="hxv-C">5</span></div>
+      <div class="hex" id="hx-H"><span class="hl">H</span><span class="hv" id="hxv-H">5</span></div>
+    </div>
+
+    <div class="sc">
+      <div style="text-align:center;min-width:80px">
+        <div class="sn" style="color:var(--gold)" id="sw-s">50</div>
+        <div class="sd">/ 100</div>
+      </div>
+      <div style="flex:1">
+        <div class="sl" style="color:var(--gold)" id="sw-l">Active Builder</div>
+        <div class="bar"><div class="bf" id="sw-b" style="width:50%;background:var(--gold)"></div></div>
+        <div class="sv" id="sw-v">Select your context above and move the sliders to generate your primary OS recommendation.</div>
+        <button class="rb" id="sw-rb" onclick="routeToOS()">Explore BRIDGE OS™ →</button>
+      </div>
+    </div>
+
+    <div class="dg2">
+      <div class="dc" style="border-left-color:var(--gold)">
+        <div class="dh"><div><div class="dn" style="color:var(--gold)">S — Stability</div><div class="dd">Psychological anchor when the ground moves</div></div><div class="dv" style="color:var(--gold)" id="dv-S">5</div></div>
+        <input type="range" min="1" max="10" value="5" aria-label="Stability" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateSW('S',this)">
+      </div>
+      <div class="dc" style="border-left-color:var(--gold)">
+        <div class="dh"><div><div class="dn" style="color:var(--gold)">W — Worth</div><div class="dd">Self-assessed value stripped of job titles</div></div><div class="dv" style="color:var(--gold)" id="dv-W">5</div></div>
+        <input type="range" min="1" max="10" value="5" aria-label="Worth" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateSW('W',this)">
+      </div>
+      <div class="dc" style="border-left-color:var(--gold)">
+        <div class="dh"><div><div class="dn" style="color:var(--gold)">I — Identity</div><div class="dd">Sovereign selfhood independent of the org chart</div></div><div class="dv" style="color:var(--gold)" id="dv-I">5</div></div>
+        <input type="range" min="1" max="10" value="5" aria-label="Identity" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateSW('I',this)">
+      </div>
+      <div class="dc" style="border-left-color:var(--gold)">
+        <div class="dh"><div><div class="dn" style="color:var(--gold)">T — Traction</div><div class="dd">Execution velocity under pressure</div></div><div class="dv" style="color:var(--gold)" id="dv-T">5</div></div>
+        <input type="range" min="1" max="10" value="5" aria-label="Traction" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateSW('T',this)">
+      </div>
+      <div class="dc" style="border-left-color:var(--gold)">
+        <div class="dh"><div><div class="dn" style="color:var(--gold)">C — Courage</div><div class="dd">Operating without permission</div></div><div class="dv" style="color:var(--gold)" id="dv-C">5</div></div>
+        <input type="range" min="1" max="10" value="5" aria-label="Courage" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateSW('C',this)">
+      </div>
+      <div class="dc" style="border-left-color:var(--gold)">
+        <div class="dh"><div><div class="dn" style="color:var(--gold)">H — Horizon</div><div class="dd">Strategic vision across AI-disruption cycles</div></div><div class="dv" style="color:var(--gold)" id="dv-H">5</div></div>
+        <input type="range" min="1" max="10" value="5" aria-label="Horizon" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateSW('H',this)">
+      </div>
+    </div>
+    <p class="thr">Scores reflect your honest current state — not your ceiling. Most first assessments cluster between 40–65. Readiness is built, not assumed.</p>
+  </section>
+
+  <!-- ═══ PIVOT OS™ PANEL ═══ -->
+  <section class="panel" id="p-pv" role="tabpanel">
+    <div class="ey" style="color:var(--pivot)">The Individual</div>
+    <h2 class="h2">PIVOT OS™ Assessment</h2>
+    <p class="bd">Career reinvention for veterans and professionals navigating the space between what they were and who they're becoming. A behavioral operating system built for the pivot — not a motivational framework.</p>
+    <div class="sc">
+      <div style="text-align:center;min-width:80px"><div class="sn" style="color:var(--pivot)" id="pv-s">50</div><div class="sd">/ 100</div></div>
+      <div style="flex:1">
+        <div class="sl" style="color:var(--pivot)" id="pv-l">Stage 2–3 · Builder</div>
+        <div class="bar"><div class="bf" id="pv-b" style="width:50%;background:var(--pivot)"></div></div>
+        <div class="sv" id="pv-v">Stage 2–3 placement. Architecture work needed on positioning and market narrative. PIVOT OS™ Builder track recommended — 12-week structured engagement.</div>
+      </div>
+    </div>
+    <div class="dg1">
+      <div class="dc" style="border-left-color:var(--pivot)"><div class="dh"><div><div class="dn">Transition Clarity</div><div class="dd">Clarity on where you are vs. where you're going</div></div><div class="dv" style="color:var(--pivot)" id="pvv-1">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Transition Clarity" style="--tc:#378ADD;--tg:rgba(55,138,221,.32)" oninput="updateOS('pv',0,this)"></div>
+      <div class="dc" style="border-left-color:var(--pivot)"><div class="dh"><div><div class="dn">Identity Anchor</div><div class="dd">Sense of professional self beyond current title or role</div></div><div class="dv" style="color:var(--pivot)" id="pvv-2">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Identity Anchor" style="--tc:#378ADD;--tg:rgba(55,138,221,.32)" oninput="updateOS('pv',1,this)"></div>
+      <div class="dc" style="border-left-color:var(--pivot)"><div class="dh"><div><div class="dn">Market Position</div><div class="dd">Awareness of your transferable value in the current landscape</div></div><div class="dv" style="color:var(--pivot)" id="pvv-3">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Market Position" style="--tc:#378ADD;--tg:rgba(55,138,221,.32)" oninput="updateOS('pv',2,this)"></div>
+      <div class="dc" style="border-left-color:var(--pivot)"><div class="dh"><div><div class="dn">Activation Readiness</div><div class="dd">Readiness to execute a structured reinvention sequence</div></div><div class="dv" style="color:var(--pivot)" id="pvv-4">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Activation Readiness" style="--tc:#378ADD;--tg:rgba(55,138,221,.32)" oninput="updateOS('pv',3,this)"></div>
+    </div>
+  </section>
+
+  <!-- ═══ BRIDGE OS™ PANEL ═══ -->
+  <section class="panel" id="p-br" role="tabpanel">
+    <div class="ey" style="color:var(--bridge)">The Organization</div>
+    <h2 class="h2">BRIDGE OS™ Assessment</h2>
+    <p class="bd">Transition infrastructure for leaders, municipalities, and SMBs managing the human side of organizational change. Built for retention and performance — not paperwork and compliance.</p>
+    <div class="sc">
+      <div style="text-align:center;min-width:80px"><div class="sn" style="color:var(--bridge)" id="br-s">50</div><div class="sd">/ 100</div></div>
+      <div style="flex:1">
+        <div class="sl" style="color:var(--bridge)" id="br-l">Moderate Readiness</div>
+        <div class="bar"><div class="bf" id="br-b" style="width:50%;background:var(--bridge)"></div></div>
+        <div class="sv" id="br-v">Moderate readiness. Communication infrastructure requires targeted intervention before full BRIDGE OS™ deployment. Phase 1 diagnostic engagement recommended with 90-day benchmark.</div>
+      </div>
+    </div>
+    <div class="dg1">
+      <div class="dc" style="border-left-color:var(--bridge)"><div class="dh"><div><div class="dn">Communication Infrastructure</div><div class="dd">Clarity and consistency of change messaging across all levels</div></div><div class="dv" style="color:var(--bridge)" id="brv-1">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Communication Infrastructure" style="--tc:#1D9E75;--tg:rgba(29,158,117,.32)" oninput="updateOS('br',0,this)"></div>
+      <div class="dc" style="border-left-color:var(--bridge)"><div class="dh"><div><div class="dn">Leadership Alignment</div><div class="dd">Unified strategic direction from executive to front line</div></div><div class="dv" style="color:var(--bridge)" id="brv-2">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Leadership Alignment" style="--tc:#1D9E75;--tg:rgba(29,158,117,.32)" oninput="updateOS('br',1,this)"></div>
+      <div class="dc" style="border-left-color:var(--bridge)"><div class="dh"><div><div class="dn">Transition Capacity</div><div class="dd">Organizational bandwidth to absorb and sustain change at pace</div></div><div class="dv" style="color:var(--bridge)" id="brv-3">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Transition Capacity" style="--tc:#1D9E75;--tg:rgba(29,158,117,.32)" oninput="updateOS('br',2,this)"></div>
+      <div class="dc" style="border-left-color:var(--bridge)"><div class="dh"><div><div class="dn">Cultural Readiness</div><div class="dd">Trust levels, psychological safety, and behavioral openness</div></div><div class="dv" style="color:var(--bridge)" id="brv-4">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Cultural Readiness" style="--tc:#1D9E75;--tg:rgba(29,158,117,.32)" oninput="updateOS('br',3,this)"></div>
+    </div>
+  </section>
+
+  <!-- ═══ HUMAN OS™ PANEL ═══ -->
+  <section class="panel" id="p-hu" role="tabpanel">
+    <div class="ey" style="color:var(--gold)">The Culture</div>
+    <h2 class="h2">Human OS™ Assessment</h2>
+    <p class="bd">Change management that starts where ADKAR ends. Built on the 7 Sovereign Criteria, including AI Resilience and Identity Architecture. Enterprise and government leadership intelligence at scale.</p>
+    <div class="sc">
+      <div style="text-align:center;min-width:80px"><div class="sn" style="color:var(--gold)" id="hu-s">50</div><div class="sd">/ 100</div></div>
+      <div style="flex:1">
+        <div class="sl" style="color:var(--gold)" id="hu-l">Culture Gap — Engagement Required</div>
+        <div class="bar"><div class="bf" id="hu-b" style="width:50%;background:var(--gold)"></div></div>
+        <div class="sv" id="hu-v">Culture health is functional but vulnerable to disruption. Gaps in AI resilience and identity architecture create retention risk. Human OS™ engagement recommended at CHRO level with board-facing brief.</div>
+      </div>
+    </div>
+    <div class="dg1">
+      <div class="dc" style="border-left-color:var(--gold)"><div class="dh"><div><div class="dn">AI Resilience</div><div class="dd">Organizational capacity to adapt to AI displacement and disruption cycles</div></div><div class="dv" style="color:var(--gold)" id="huv-1">5</div></div><input type="range" min="1" max="10" value="5" aria-label="AI Resilience" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateOS('hu',0,this)"></div>
+      <div class="dc" style="border-left-color:var(--gold)"><div class="dh"><div><div class="dn">Identity Architecture</div><div class="dd">Culture health and belonging beyond performance metrics</div></div><div class="dv" style="color:var(--gold)" id="huv-2">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Identity Architecture" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateOS('hu',1,this)"></div>
+      <div class="dc" style="border-left-color:var(--gold)"><div class="dh"><div><div class="dn">Engagement Depth</div><div class="dd">Meaning and mission alignment at enterprise scale</div></div><div class="dv" style="color:var(--gold)" id="huv-3">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Engagement Depth" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateOS('hu',2,this)"></div>
+      <div class="dc" style="border-left-color:var(--gold)"><div class="dh"><div><div class="dn">Sovereign Capacity</div><div class="dd">Leadership pipeline readiness for the disruption era</div></div><div class="dv" style="color:var(--gold)" id="huv-4">5</div></div><input type="range" min="1" max="10" value="5" aria-label="Sovereign Capacity" style="--tc:#C9A84C;--tg:rgba(201,168,76,.32)" oninput="updateOS('hu',3,this)"></div>
+    </div>
+  </section>
+
+  <!-- ═══ COMPOSITE — always visible ═══ -->
+  <div class="comp">
+    <div class="ey" style="color:rgba(255,255,255,0.26);margin-bottom:14px">Composite Three-OS Overview</div>
+    <div class="cg">
+      <div class="ci"><div class="cn" style="color:var(--gold)" id="c-sw">50</div><div class="bar" style="margin:5px 0"><div class="bf" id="cb-sw" style="width:50%;background:var(--gold)"></div></div><div class="cl">S.W.I.T.C.H.™</div></div>
+      <div class="ci"><div class="cn" style="color:var(--pivot)" id="c-pv">50</div><div class="bar" style="margin:5px 0"><div class="bf" id="cb-pv" style="width:50%;background:var(--pivot)"></div></div><div class="cl">PIVOT OS™</div></div>
+      <div class="ci"><div class="cn" style="color:var(--bridge)" id="c-br">50</div><div class="bar" style="margin:5px 0"><div class="bf" id="cb-br" style="width:50%;background:var(--bridge)"></div></div><div class="cl">BRIDGE OS™</div></div>
+      <div class="ci"><div class="cn" style="color:var(--gold)" id="c-hu">50</div><div class="bar" style="margin:5px 0"><div class="bf" id="cb-hu" style="width:50%;background:var(--gold)"></div></div><div class="cl">Human OS™</div></div>
+    </div>
+    <button class="cta" onclick="openModal()">Request Your Sovereign Architecture Briefing →</button>
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer class="foot">
+  <span>FL/II Framework · M2M~Inc. · Veteran-Owned SDVOSB</span>
+  <span>© 2026 M2M~Inc. · SDVOSB · VBE · SAFe 6 · USPTO · Tuck</span>
+  <span class="foot-mark">To the work.</span>
+  <span class="axiom-line">Powered by <b>AXIOM</b> | M2M~Inc. Sovereign Intelligence Stack</span>
+</footer>
+
+<!-- ═══ BRIEFING REQUEST MODAL ═══ -->
+<div class="modal-bg" id="modal" role="dialog" aria-modal="true" aria-label="Request Sovereign Architecture Briefing" onclick="closeBg(event)">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal()" aria-label="Close">×</button>
+
+    <!-- Form View -->
+    <div id="form-view">
+      <div class="modal-ey">Sovereign Architecture Briefing</div>
+      <div class="modal-h">Request Your Briefing</div>
+      <div class="modal-sub">A dedicated session to review your Three-OS diagnostic and map your sovereign engagement path.</div>
+      <div class="modal-div"></div>
+
+      <form id="briefing-form" onsubmit="submitForm(event)">
+        <!-- Hidden score fields — auto-populated from assessment -->
+        <input type="hidden" name="switch_score" id="f-sw">
+        <input type="hidden" name="pivot_score" id="f-pv">
+        <input type="hidden" name="bridge_score" id="f-br">
+        <input type="hidden" name="human_score" id="f-hu">
+        <input type="hidden" name="context" id="f-ctx">
+        <input type="hidden" name="os_recommendation" id="f-os">
+        <input type="hidden" name="_subject" value="Sovereign Architecture Briefing Request — M2M~Inc.">
+        <input type="hidden" name="_replyto" id="f-email-reply">
+
+        <div class="fl">
+          <label for="f-name">Full Name</label>
+          <input class="fi" type="text" id="f-name" name="name" placeholder="Your full name" required autocomplete="name">
+        </div>
+        <div class="fl">
+          <label for="f-email">Email Address</label>
+          <input class="fi" type="email" id="f-email" name="email" placeholder="your@email.com" required autocomplete="email">
+          <div class="err" id="email-err">Please enter a valid email address.</div>
+        </div>
+
+        <button class="modal-cta" type="submit" id="submit-btn">
+          Request Your Sovereign Architecture Briefing →
+        </button>
+      </form>
+
+      <p style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:14px;text-align:center;letter-spacing:.03em;line-height:1.5">
+        M2M~Inc. · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f29b9c949db29f9d96979ec09f978181939597dc9c9786">[email&#160;protected]</a> · Veteran-Owned · SDVOSB Certified
+      </p>
+    </div>
+
+    <!-- Confirmation View -->
+    <div class="confirm" id="confirm-view">
+      <div class="confirm-icon">◆</div>
+      <div class="confirm-h">Request Received.</div>
+      <div class="confirm-sub">
+        Your Sovereign Architecture Briefing request has been submitted.<br>
+        A member of the M2M~Inc. team will be in contact within one business day.
+      </div>
+      <!-- DEL-023 — cross-site handoff; populated on 2xx, no hard redirect -->
+      <a id="continue-lane" class="modal-cta" href="#" style="display:none;text-decoration:none;text-align:center;margin-top:6px">Continue →</a>
+      <span class="confirm-mark">To the work.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase client (anon, insert-only via RLS) -->
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── STATE ──
+const sw={S:5,W:5,I:5,T:5,C:5,H:5};
+const pv=[5,5,5,5],br=[5,5,5,5],hu=[5,5,5,5];
+let ctx=null,routeOS='br';
+
+// ── SUPABASE (anon insert-only; RLS enforces the perimeter, key is safe client-side) ──
+const SB_URL='https://jnmywpfdykuybrxkdcmc.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpubXl3cGZkeWt1eWJyeGtkY21jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTk0NzMsImV4cCI6MjA5MDczNTQ3M30.EV8UFGatRV56IjWDQIzgZqIqqY1n9Um6DDQWxyp3JDQ';
+let sbClient=null;
+try{ if(window.supabase&&window.supabase.createClient){ sbClient=window.supabase.createClient(SB_URL,SB_ANON); } else { console.warn('[m2m] supabase-js not loaded; assessment telemetry disabled'); } }
+catch(e){ console.warn('[m2m] supabase init failed:',e); }
+
+const CTX_MAP={individual:'individual',org:'organizational',enterprise:'enterprise'};
+const OS_MAP={pv:'PIVOT_OS',br:'BRIDGE_OS',hu:'HUMAN_OS'};
+function sbNum(id){const el=document.getElementById(id);const n=parseInt(el&&el.textContent,10);return isNaN(n)?null:n;}
+
+// ═══ DEL-023 — Triage routing (plain-JS port of canonical laneRouter.ts v2 +
+//     entrySource.ts; logic preserved 1:1 — TS types/export/as-const removed;
+//     `?.`→`&&`, `??`→`|| ` to match this file's classic-script style; no
+//     value/config/control-flow change. .ts files remain the canonical ref.) ═══
+
+// --- entrySource ---
+const SRC_STORAGE_KEY='m2m:entry-src';
+function captureEntrySource(){
+  if(typeof window==='undefined') return;
+  const raw=new URLSearchParams(window.location.search).get('src');
+  if(raw===null) return;                       // nothing arrived — don't clobber a prior capture
+  try{ sessionStorage.setItem(SRC_STORAGE_KEY,raw); }catch(e){}
+}
+function getEntrySource(){
+  if(typeof window==='undefined') return 'direct';
+  try{ const s=sessionStorage.getItem(SRC_STORAGE_KEY); return s?s:'direct'; }
+  catch(e){ return 'direct'; }
+}
+
+// --- laneRouter (v2) ---
+const LANE_LADDER=['pivot','bridge','human_os'];               // low → high capacity; ties route UP
+const LANE_PATHS={pivot:'/pivot-os',bridge:'/bridge-os',human_os:'/human-os'};
+const MAIN_SITE='https://model2message.net';
+const ROUTING_CONFIG={ contextWeight:40, scoreScale:0.6, tieThreshold:8 }; // KEV LOCKS — values identical to laneRouter.ts
+const contextMap={ individual:'pivot', organizational:'bridge', enterprise:'human_os' };
+const RECO_LANE={ pv:'pivot', br:'bridge', hu:'human_os' };     // routeOS → Lane (fallback normalization)
+const LANE_NAMES={ pivot:'PIVOT OS™', bridge:'BRIDGE OS™', human_os:'Human OS™' };
+
+function topLane(scores){ return LANE_LADDER.reduce((a,b)=>(scores[b]>=scores[a]?b:a)); }
+
+function resolveLane(signals){
+  const {contextWeight,scoreScale,tieThreshold}=ROUTING_CONFIG;
+  const scores={pivot:0,bridge:0,human_os:0};
+
+  // Gov override (dormant): government routes to Human OS.
+  if(signals.govFlag){
+    scores.human_os=100;
+    return {lane:'human_os',scores,tieBroken:false,govOverride:true,zeroSignal:false};
+  }
+
+  // Native per-OS composites are the base signal.
+  for(const lane of LANE_LADDER){
+    const raw=signals.laneScores && signals.laneScores[lane];
+    if(typeof raw==='number' && raw>0){
+      scores[lane]+=Math.min(Math.max(raw,0),100)*scoreScale;
+    }
+  }
+
+  // Self-declared context is the strongest single vote.
+  const ctxLane=contextMap[signals.context];
+  if(ctxLane) scores[ctxLane]+=contextWeight;
+
+  // Zero-signal guard: nothing mapped → fall back explicitly, never manufacture a lead.
+  const max=Math.max(scores.pivot,scores.bridge,scores.human_os);
+  if(max===0){
+    return {lane:signals.fallbackLane||'pivot',scores,tieBroken:false,govOverride:false,zeroSignal:true};
+  }
+
+  // Highest wins; tie SET = every lane within tieThreshold of max, highest-capacity wins.
+  const tieSet=LANE_LADDER.filter((l)=>max-scores[l]<tieThreshold);
+  const isTie=tieSet.length>1;
+  const lane=isTie?tieSet[tieSet.length-1]:topLane(scores);
+
+  return {lane,scores,tieBroken:isTie,govOverride:false,zeroSignal:false};
+}
+
+function buildHandoffUrl(lane,aid,src){
+  const params=new URLSearchParams({via:'dx',aid});
+  params.set('src',src||'direct');             // 'direct' = MISSING only; any present value passes verbatim
+  return MAIN_SITE+LANE_PATHS[lane]+'?'+params.toString();
+}
+
+function routingInsertFields(resolution){
+  return { lane_routed:resolution.lane, routed_at:new Date().toISOString() };
+}
+// ═══ end DEL-023 ═══
+
+// Snapshot of current assessment state → table row shape.
+function buildAssessmentRow(briefing){
+  const composite=sbNum('sw-s');
+  return {
+    assessment_context: ctx ? (CTX_MAP[ctx]||null) : null,
+    scores: {S:sw.S,W:sw.W,I:sw.I,T:sw.T,C:sw.C,H:sw.H},
+    composite_score: composite,
+    recommended_os: routeOS ? (OS_MAP[routeOS]||null) : null,
+    briefing_requested: !!briefing,
+    locale: (navigator.language||'en'),
+    raw_payload: {
+      switch: {score:composite, dims:{S:sw.S,W:sw.W,I:sw.I,T:sw.T,C:sw.C,H:sw.H}, label:(document.getElementById('sw-l')||{}).textContent||null},
+      pivot: {score:sbNum('pv-s'), dims:pv.slice()},
+      bridge: {score:sbNum('br-s'), dims:br.slice()},
+      human: {score:sbNum('hu-s'), dims:hu.slice()},
+      context: ctx, route_os: routeOS,
+      ts: new Date().toISOString()
+    }
+  };
+}
+
+// Fire-and-forget insert. Never throws, never blocks the UX; warns on error.
+async function sbInsertAssessment(row){
+  if(!sbClient) return;
+  try{
+    const {error}=await sbClient.from('m2m_switch_assessments').insert(row);
+    if(error) console.warn('[m2m] assessment insert failed:',error.message||error);
+  }catch(e){ console.warn('[m2m] assessment insert error:',e); }
+}
+
+// View insert: one row per session once a context is chosen and the sliders settle.
+let viewLogged=false, viewTimer=null;
+function scheduleAssessmentView(){
+  if(viewLogged||!ctx) return;
+  clearTimeout(viewTimer);
+  viewTimer=setTimeout(()=>{
+    if(viewLogged||!ctx) return;
+    viewLogged=true;
+    sbInsertAssessment(buildAssessmentRow(false));
+  },1200);
+}
+
+// ── UTILS ──
+function sbg(v,c){const p=((v-1)/9)*100;return`linear-gradient(to right,${c} ${p}%,rgba(255,255,255,0.08) ${p}%)`}
+function set(id,val){const e=document.getElementById(id);if(e)e.textContent=val}
+function setW(id,val){const e=document.getElementById(id);if(e)e.style.width=val+'%'}
+
+// ── TABS ──
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelector('.tab.'+t).classList.add('on');
+  document.getElementById('p-'+t).classList.add('on');
+}
+
+// ── CONTEXT ──
+function setCtx(c,btn){
+  if(ctx===c){ctx=null;document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('on'));}
+  else{ctx=c;document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+  recalcSW();
+}
+
+// ── S.W.I.T.C.H. ──
+function updateSW(dim,inp){
+  const v=parseInt(inp.value);
+  sw[dim]=v;
+  inp.style.background=sbg(v,'#C9A84C');
+  set('dv-'+dim,v);
+  set('hxv-'+dim,v);
+  const hx=document.getElementById('hx-'+dim);
+  hx.className='hex'+(v>=8?' hi':'');
+  recalcSW();
+}
+
+function recalcSW(){
+  const total=Object.values(sw).reduce((a,b)=>a+b,0);
+  const score=Math.round((total/60)*100);
+  set('sw-s',score); setW('sw-b',score);
+  set('c-sw',score); setW('cb-sw',score);
+  document.getElementById('f-sw').value=score;
+
+  let label,verdict,os;
+
+  if(ctx==='individual'){
+    if(score>=70){label='Stage 4–5 Trajectory';verdict='Strong identity foundation with high traction. PIVOT OS™ advanced track — sovereign brand activation and proximity strategy are the next moves.';os='pv';}
+    else if(score>=50){label='Stage 2–3 · Builder';verdict='Solid awareness, architecture work needed. PIVOT OS™ Builder track recommended — 12-week structured reinvention engagement.';os='pv';}
+    else{label='Stage 1 · Seeker';verdict='Foundational clarity is the entry point. PIVOT OS™ onboarding begins with the Reactivity Profile Assessment — before positioning or market strategy.';os='pv';}
+  } else if(ctx==='org'){
+    if(score>=65){label='High Organizational Readiness';verdict='Leadership alignment and execution capacity are strong. BRIDGE OS™ full deployment recommended. Transition infrastructure can be activated at pace.';os='br';}
+    else if(score>=45){label='Moderate Readiness';verdict='Communication infrastructure and cultural capacity require targeted work. BRIDGE OS™ Phase 1 diagnostic engagement — 90-day benchmark.';os='br';}
+    else{label='Foundation Work Required';verdict='Individual foundation work is needed before organizational deployment. PIVOT OS™ assessment is recommended first.';os='pv';}
+  } else if(ctx==='enterprise'){
+    if(score>=60){label='Strategic Culture Strength';verdict='Enterprise demonstrates strong AI resilience and identity architecture. Human OS™ practitioner certification recommended for internal champions.';os='hu';}
+    else if(score>=42){label='Culture Gap Identified';verdict='Culture health is functional but vulnerable. Human OS™ CHRO-level engagement recommended — board-facing brief to follow.';os='hu';}
+    else{label='Organizational Foundation First';verdict='Enterprise culture work requires organizational infrastructure first. BRIDGE OS™ is the prerequisite before Human OS™ deployment.';os='br';}
+  } else {
+    if(score>=76){label='Sovereign Architect';verdict='Full Three-OS deployment. The platform amplifies what\'s already present. All three lanes apply simultaneously.';os=null;}
+    else if(score>=60){label='Strategic Deployer';verdict='Human OS™ culture engagement is your leverage point. Horizon dimension and institutional thinking signal enterprise-level impact capacity.';os='hu';}
+    else if(score>=44){label='Active Builder';verdict='BRIDGE OS™ organizational engagement recommended. Traction and courage are your activation assets — the system needs to match your execution capacity.';os='br';}
+    else{label='Pivot Ready';verdict='PIVOT OS™ individual engagement is the entry point. Identity, worth, and stability are the foundation. Sovereign ground first — scale comes after.';os='pv';}
+  }
+
+  set('sw-l',label); set('sw-v',verdict);
+  routeOS=os;
+  document.getElementById('f-os').value=os||'all';
+  document.getElementById('f-ctx').value=ctx||'not selected';
+
+  const names={pv:'PIVOT OS™',br:'BRIDGE OS™',hu:'Human OS™'};
+  document.getElementById('sw-rb').textContent=os?'Explore '+names[os]+' →':'View Full Three-OS Overview →';
+
+  // Record the completed assessment view once the sliders settle (briefing_requested=false).
+  scheduleAssessmentView();
+}
+
+function routeToOS(){if(routeOS)goTab(routeOS);}
+
+// ── OS PANELS ──
+function updateOS(type,idx,inp){
+  const v=parseInt(inp.value);
+  const cols={pv:'#378ADD',br:'#1D9E75',hu:'#C9A84C'};
+  inp.style.background=sbg(v,cols[type]);
+
+  if(type==='pv'){
+    pv[idx]=v; set('pvv-'+(idx+1),v);
+    const s=Math.round((pv.reduce((a,b)=>a+b,0)/40)*100);
+    set('pv-s',s); setW('pv-b',s); set('c-pv',s); setW('cb-pv',s);
+    document.getElementById('f-pv').value=s;
+    const l=s>=72?'Stage 4–5 · Deployer':s>=50?'Stage 2–3 · Builder':'Stage 1 · Seeker';
+    const vt=s>=72?'Stage 4–5 trajectory confirmed. Transferable assets and positioning are strong. PIVOT OS™ moves directly to sovereign brand activation and proximity strategy.':s>=50?'Stage 2–3 placement. Foundational awareness present — architecture work needed on positioning and market narrative. PIVOT OS™ Builder track recommended.':'Stage 1 Seeker placement. Disruption recognition phase. Foundational PIVOT OS™ onboarding required before skill mapping or market strategy.';
+    set('pv-l',l); set('pv-v',vt);
+  } else if(type==='br'){
+    br[idx]=v; set('brv-'+(idx+1),v);
+    const s=Math.round((br.reduce((a,b)=>a+b,0)/40)*100);
+    set('br-s',s); setW('br-b',s); set('c-br',s); setW('cb-br',s);
+    document.getElementById('f-br').value=s;
+    const l=s>=72?'High Readiness':s>=48?'Moderate Readiness':'Foundation Work Required';
+    const vt=s>=72?'High readiness for BRIDGE OS™ engagement. Communication infrastructure and cultural capacity support transformation at pace.':s>=48?'Moderate readiness. Communication infrastructure requires targeted intervention. Phase 1 diagnostic engagement recommended — 90-day benchmark.':'Significant gaps in transition capacity and leadership alignment. Structured feasibility assessment required before any SOW commitment.';
+    set('br-l',l); set('br-v',vt);
+  } else {
+    hu[idx]=v; set('huv-'+(idx+1),v);
+    const s=Math.round((hu.reduce((a,b)=>a+b,0)/40)*100);
+    set('hu-s',s); setW('hu-b',s); set('c-hu',s); setW('cb-hu',s);
+    document.getElementById('f-hu').value=s;
+    const l=s>=72?'Culture Strength — Enterprise Ready':s>=48?'Culture Gap — Engagement Required':'Critical Culture Signal';
+    const vt=s>=72?'Enterprise demonstrates strong culture health. AI resilience and identity architecture are present. Practitioner certification recommended for internal champions.':s>=48?'Culture health functional but vulnerable to disruption. Gaps in AI resilience create retention risk. Human OS™ recommended at CHRO level with board-facing brief.':'Critical culture health signal. Identity, engagement, and retention architecture are at risk. Human OS™ emergency diagnostic required. Board-level brief before any investment commitment.';
+    set('hu-l',l); set('hu-v',vt);
+  }
+}
+
+// ── MODAL ──
+function openModal(){
+  // Populate hidden score fields
+  document.getElementById('f-sw').value=document.getElementById('sw-s').textContent;
+  document.getElementById('f-pv').value=document.getElementById('pv-s').textContent;
+  document.getElementById('f-br').value=document.getElementById('br-s').textContent;
+  document.getElementById('f-hu').value=document.getElementById('hu-s').textContent;
+  document.getElementById('modal').classList.add('on');
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('on');
+}
+function closeBg(e){if(e.target===document.getElementById('modal'))closeModal();}
+
+// ── FORM SUBMISSION ── (Formspree AJAX)
+async function submitForm(e){
+  e.preventDefault();
+  const btn=document.getElementById('submit-btn');
+  const emailEl=document.getElementById('f-email');
+  const errEl=document.getElementById('email-err');
+
+  // Sync reply-to
+  document.getElementById('f-email-reply').value=emailEl.value;
+
+  // DEL-023 — resolve the triage lane from live state and augment the SAME insert.
+  const resolution=resolveLane({
+    context: ctx ? (CTX_MAP[ctx]||'') : '',                     // 'org' → 'organizational', etc.
+    laneScores:{ pivot:sbNum('pv-s')||0, bridge:sbNum('br-s')||0, human_os:sbNum('hu-s')||0 },
+    switchIndex: sbNum('sw-s')||undefined,                      // captured, inert in routing v1
+    govFlag:false,                                             // dormant — no public-sector signal yet
+    fallbackLane: RECO_LANE[routeOS]||undefined                // normalized recommended_os
+  });
+  const aid=crypto.randomUUID();                               // client-minted id — no RETURNING needed
+
+  // Record the briefing request to Supabase (briefing_requested=true).
+  // Fire-and-forget: independent of Formspree, never blocks or fails the submit UX.
+  const briefingRow=buildAssessmentRow(true);
+  briefingRow.name=(document.getElementById('f-name').value||'').trim();
+  briefingRow.email=(emailEl.value||'').trim();
+  briefingRow.id=aid;                                          // client-minted PK
+  briefingRow.source=getEntrySource();                        // verbatim entry attribution
+  Object.assign(briefingRow, routingInsertFields(resolution)); // lane_routed + routed_at
+  sbInsertAssessment(briefingRow);                            // single insert; recommended_os untouched; NO .select()
+
+  btn.disabled=true;
+  btn.textContent='Submitting...';
+  errEl.style.display='none';
+
+  const form=document.getElementById('briefing-form');
+  const data=new FormData(form);
+
+  try{
+    const res=await fetch('https://formspree.io/f/meenyapk',{
+      method:'POST',
+      body:data,
+      headers:{'Accept':'application/json'}
+    });
+    if(res.ok){
+      document.getElementById('form-view').style.display='none';
+      document.getElementById('confirm-view').style.display='block';
+      // DEL-023 — offer the cross-site handoff; no hard redirect.
+      const cont=document.getElementById('continue-lane');
+      if(cont){
+        cont.href=buildHandoffUrl(resolution.lane, aid, getEntrySource());
+        cont.textContent='Continue to '+(LANE_NAMES[resolution.lane]||resolution.lane)+' →';
+        cont.style.display='block';
+      }
+    } else {
+      btn.disabled=false;
+      btn.textContent='Request Your Sovereign Architecture Briefing →';
+      errEl.textContent='Submission failed. Please email info@model2message.net directly.';
+      errEl.style.display='block';
+    }
+  } catch(err){
+    btn.disabled=false;
+    btn.textContent='Request Your Sovereign Architecture Briefing →';
+    errEl.textContent='Connection error. Please email info@model2message.net directly.';
+    errEl.style.display='block';
+  }
+}
+
+// ── INIT ──
+captureEntrySource(); // DEL-023 — capture ?src= verbatim on load, before any navigation
+document.querySelectorAll('#p-sw input[type=range]').forEach(i=>i.style.background=sbg(5,'#C9A84C'));
+document.querySelectorAll('#p-pv input[type=range]').forEach(i=>i.style.background=sbg(5,'#378ADD'));
+document.querySelectorAll('#p-br input[type=range]').forEach(i=>i.style.background=sbg(5,'#1D9E75'));
+document.querySelectorAll('#p-hu input[type=range]').forEach(i=>i.style.background=sbg(5,'#C9A84C'));
+// Init hidden fields
+document.getElementById('f-sw').value=50;
+document.getElementById('f-pv').value=50;
+document.getElementById('f-br').value=50;
+document.getElementById('f-hu').value=50;
+document.getElementById('f-ctx').value='not selected';
+document.getElementById('f-os').value='br';
+</script>
+</body>
+</html>
