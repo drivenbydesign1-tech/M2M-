@@ -378,8 +378,49 @@ let ctx=null,routeOS='br';
 const SB_URL='https://jnmywpfdykuybrxkdcmc.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpubXl3cGZkeWt1eWJyeGtkY21jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTk0NzMsImV4cCI6MjA5MDczNTQ3M30.EV8UFGatRV56IjWDQIzgZqIqqY1n9Um6DDQWxyp3JDQ';
 let sbClient=null;
-try{ if(window.supabase&&window.supabase.createClient){ sbClient=window.supabase.createClient(SB_URL,SB_ANON); } else { console.warn('[m2m] supabase-js not loaded; assessment telemetry disabled'); } }
-catch(e){ console.warn('[m2m] supabase init failed:',e); }
+
+// ── TELEMETRY SUBSTRATE (m2m_web_traffic: append-only, PII-free) ──
+// Nothing here carries a name, an email or a raw IP. session_hash is a random
+// per-tab token, not an identity.
+const SESSION_HASH=(function(){
+  try{
+    let h=sessionStorage.getItem('m2m:sh');
+    if(!h){ h=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Math.random()).slice(2); sessionStorage.setItem('m2m:sh',h); }
+    return h;
+  }catch(e){ return null; }
+})();
+function trafficRow(kind,extra){
+  const q=new URLSearchParams(location.search);
+  return Object.assign({
+    event_kind:kind,
+    path:location.pathname||'/',
+    form_name:'switch-index',
+    referrer:document.referrer||null,
+    utm_source:q.get('utm_source'), utm_medium:q.get('utm_medium'), utm_campaign:q.get('utm_campaign'),
+    session_hash:SESSION_HASH,
+    device:(window.matchMedia&&matchMedia('(max-width:768px)').matches)?'mobile':'desktop'
+  },extra||{});
+}
+
+// ── FAILURE SURFACE ──
+// Every path that cannot reach Postgres lands here: an in-page buffer SKL-013 QA can
+// assert on, a console.error, and a durable row in m2m_web_traffic. Deliberately not
+// console.warn — a warn is what kept three months of lost intake invisible.
+window.__m2mFailures=[];
+function m2mFail(stage,err){
+  const msg=(err&&(err.message||err.error_description||err.details))||String(err||'unknown');
+  window.__m2mFailures.push({stage:stage,message:msg,at:new Date().toISOString()});
+  console.error('[m2m] FAILED at '+stage+':',msg);
+  // Best-effort durable record. Guarded so a failing failure-logger can never recurse.
+  if(sbClient&&stage!=='traffic-insert'){
+    try{ sbClient.from('m2m_web_traffic').insert(trafficRow('form_error',{outcome:'error',error_text:String(msg).slice(0,300)})); }catch(e){}
+  }
+}
+
+try{
+  if(window.supabase&&window.supabase.createClient){ sbClient=window.supabase.createClient(SB_URL,SB_ANON); }
+  else { m2mFail('supabase-load','supabase-js did not load; no telemetry can reach Postgres'); }
+}catch(e){ m2mFail('supabase-init',e); }
 
 const CTX_MAP={individual:'individual',org:'organizational',enterprise:'enterprise'};
 const OS_MAP={pv:'PIVOT_OS',br:'BRIDGE_OS',hu:'HUMAN_OS'};
@@ -483,16 +524,34 @@ function buildAssessmentRow(briefing){
   };
 }
 
-// Fire-and-forget insert. Never throws, never blocks the UX; warns on error.
-async function sbInsertAssessment(row){
-  if(!sbClient) return;
+// Telemetry events go to m2m_web_traffic, never to m2m_switch_assessments, so a row in
+// that table always means a real person finished the Index. Prefers the edge beacon
+// (window.m2m.formView) when the Worker is live; falls back to a direct anon insert.
+async function sbInsertTraffic(kind,extra){
+  if(window.m2m&&typeof window.m2m.formView==='function'){
+    try{ window.m2m.formView(kind,extra||{}); return; }catch(e){ /* fall through to direct insert */ }
+  }
+  if(!sbClient){ m2mFail('traffic-insert','no supabase client; event "'+kind+'" dropped'); return; }
   try{
-    const {error}=await sbClient.from('m2m_switch_assessments').insert(row);
-    if(error) console.warn('[m2m] assessment insert failed:',error.message||error);
-  }catch(e){ console.warn('[m2m] assessment insert error:',e); }
+    const {error}=await sbClient.from('m2m_web_traffic').insert(trafficRow(kind,extra));
+    if(error) m2mFail('traffic-insert',error);
+  }catch(e){ m2mFail('traffic-insert',e); }
 }
 
-// View insert: one row per session once a context is chosen and the sliders settle.
+// Real completed assessments only (briefing_requested=true). Fire-and-forget so it never
+// blocks the submit UX, but never silent: every failure is recorded via m2mFail.
+async function sbInsertAssessment(row){
+  if(!sbClient){ m2mFail('assessment-insert','no supabase client; assessment row dropped'); return; }
+  try{
+    const {error}=await sbClient.from('m2m_switch_assessments').insert(row);
+    if(error){ m2mFail('assessment-insert',error); return; }
+    sbInsertTraffic('form_submit',{outcome:'ok'});
+  }catch(e){ m2mFail('assessment-insert',e); }
+}
+
+// View event: one row per session once a context is chosen and the sliders settle.
+// Was writing into m2m_switch_assessments, inflating that table with auto-fired views
+// separable from real submissions only by briefing_requested. Now a traffic event.
 let viewLogged=false, viewTimer=null;
 function scheduleAssessmentView(){
   if(viewLogged||!ctx) return;
@@ -500,7 +559,7 @@ function scheduleAssessmentView(){
   viewTimer=setTimeout(()=>{
     if(viewLogged||!ctx) return;
     viewLogged=true;
-    sbInsertAssessment(buildAssessmentRow(false));
+    sbInsertTraffic('form_view',{outcome:'ok'});
   },1200);
 }
 
