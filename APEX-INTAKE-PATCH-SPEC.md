@@ -3,14 +3,38 @@
 For the session that has write access to **`Kali-Dedwen/drivenbydesign1-tech`**
 (Vercel project `drivenbydesign1-tech-tiil`, branch `main`).
 
-This session cannot apply it. `add_repo` refuses cross-owner attach:
+**This session cannot apply it, and neither can a new one, until access is granted.**
+Two mechanisms were tried; both failed, for two *different* reasons:
 
-> `cross-tier adds are not supported in v1: requested
-> "kali-dedwen/drivenbydesign1-tech" but session already has repos from owner(s)
-> [drivenbydesign1-tech]`
+1. `add_repo` into this session — refused structurally, twice:
+   > `cross-tier adds are not supported in v1: requested
+   > "kali-dedwen/drivenbydesign1-tech" but session already has repos from
+   > owner(s) [drivenbydesign1-tech]`
 
-Re-attempted after the handoff update; same refusal. It needs a session started
-with that repo as its **initial** source.
+2. Spawning a fresh session with that repo as its *initial* source — the remedy
+   the refusal above prescribes. It failed earlier, on authorization:
+   > `GitHub repository access check failed. Either you don't have access to this
+   > repository, it isn't included in the Claude GitHub App's repository
+   > selection, or your GitHub connection has expired. (github_repo_access_denied)`
+
+`list_repos` confirms it: the Claude GitHub App is installed on the
+**`drivenbydesign1-tech`** account only. Ten repos are reachable, all under that
+owner. `Kali-Dedwen/drivenbydesign1-tech` is not among them.
+
+### The remedy — Kev can do this himself, it is his own account
+
+`Kali-Dedwen` is a personal GitHub **user** account, not an organization
+(`githubRepoOwnerType: "User"`), and it is Kev's: the live deployment's commit
+metadata records author *Kevin A. Smith* &lt;Kevin@model2message.net&gt; with login
+`Kali-Dedwen`.
+
+So, signed in as `Kali-Dedwen`: **GitHub → Settings → Applications → Installed
+GitHub Apps → Claude → Repository access → add `drivenbydesign1-tech`.**
+Alternatively re-connect GitHub under claude.ai → Settings → Connectors and
+include that account.
+
+Once that is done, start a session with `Kali-Dedwen/drivenbydesign1-tech` as its
+initial source and apply this spec. Nothing else is blocking.
 
 Everything below was verified against the shipped production bundle
 (`/assets/index-Co80xarS.js`, 921,383 bytes) so the patch lands first try.
