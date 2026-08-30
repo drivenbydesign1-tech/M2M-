@@ -1,5 +1,47 @@
 # Module progress + completion contract — independent adversarial validation
 
+> **REMEDIATION STATUS, 2026-08-30 — V1 and V2 are both fixed and verified.**
+> The findings below are preserved as written at the time of testing; this banner
+> records what has since changed and how it was proven.
+>
+> **V1 — FIXED.** Migration `20260829235709 restore_anon_execute_on_pre_request_hook`
+> grants EXECUTE on `public.set_workspace_tier_from_jwt()` to `anon`. Re-probed over
+> live HTTP: the hook message is gone from all five endpoints, each request now
+> reaches its real authorization layer, and valid anon inserts to `m2m_web_traffic`
+> and `roi_assessment` return **HTTP 201**. Rollback: `REVOKE EXECUTE … FROM anon`,
+> which re-breaks all anonymous REST.
+>
+> Fixing V1 exposed two defects of mine that the 401 had masked, both corrected in
+> commit `b3fba8b`: `ck_event_kind` rejects `form_submit` and `form_error` (now
+> `form_submit_ok` / `form_submit_error`), and `roi_assessment_source_check` rejects
+> `pivot-os-landing` (now `self_serve`). Tests now pin the allowed `event_kind` set.
+>
+> **V2 — FIXED.** Migration `20260830000521 ck_completed_requires_evidence_on_module_progress`
+> adds `CHECK (coalesce(completed,false) = false OR completion_evidence_ref IS NOT NULL)`.
+> A constraint rather than a trigger edit, because it holds regardless of which path
+> writes the row. Verified by re-running the attack:
+>
+> | Re-test | Result |
+> |---|---|
+> | admin flips `status='completed'`, no evidence | **REFUSED** `23514`, residual `completed=false status=in_progress evidence=NULL` |
+> | `service_role` same flip | **REFUSED** `23514`, residual clean |
+> | `fn_complete_module()` valid path | **works** — `completed=true`, evidence linked |
+> | status flip on a row that already carries evidence | **allowed**, evidence intact |
+>
+> Both refusals leave nothing partial, and neither the valid completion path nor a
+> legitimate admin re-flip was broken. Rollback: `ALTER TABLE public.m2m_module_progress
+> DROP CONSTRAINT ck_completed_requires_evidence;`
+>
+> **Still open:** V3–V6 (NULL lane, learner-writable `email` into facilitator views,
+> lane casing, invented module ids), V7 (completion structurally unreachable on a
+> learner's behalf), V8 (revocation does not cascade). Concurrency and authenticated
+> transport remain **NOT EXECUTED**.
+>
+> One residual worth a decision: with the constraint in place, the trigger's
+> `completed := TRUE` assignment is now dead weight on the invalid path — it turns
+> what could be a clear refusal into a raw `23514`. Removing that assignment from
+> `update_m2m_module_progress_updated_at()` is a separate, optional cleanup.
+
 **Validator:** CC (this session). **Date:** 2026-08-29, 23:44–23:55 UTC.
 **Target:** Supabase `jnmywpfdykuybrxkdcmc` — `fn_complete_module`,
 `fn_upsert_module_progress`, `m2m_module_progress`, `m2m_checkpoints`.
