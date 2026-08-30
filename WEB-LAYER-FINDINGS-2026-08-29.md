@@ -162,7 +162,7 @@ async function r(a) {
   setBusy(true);
   const { error } = await supabase
     .from('roi_assessment')
-    .insert({ contact_email: t, source: 'pivot-os-landing' });
+    .insert({ contact_email: t, source: 'self_serve' });
   setBusy(false);
   if (error) {
     setErr("We couldn't save that — please try again.");

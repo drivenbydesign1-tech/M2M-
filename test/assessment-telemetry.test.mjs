@@ -110,8 +110,8 @@ console.log('assessment telemetry');
   check('error pushed to window.__m2mFailures', ctx.__m2mFailures.length === 1,
     JSON.stringify(ctx.__m2mFailures));
   check('error emitted on console.error', errors.length === 1, errors.at(-1));
-  const errRow = inserts.filter(i => i.row.event_kind === 'form_error').at(-1);
-  check('error persisted as a form_error traffic row',
+  const errRow = inserts.filter(i => i.row.event_kind === 'form_submit_error').at(-1);
+  check('error persisted as a form_submit_error traffic row',
     !!errRow && errRow.row.outcome === 'error' && errRow.row.error_text === 'boom');
 }
 
@@ -143,7 +143,7 @@ console.log('assessment telemetry');
     JSON.stringify(calls) === JSON.stringify([['attempt', 'switch_index'], ['ok', 'switch_index']]),
     JSON.stringify(calls));
   check('beacon owns the success event, no duplicate traffic row',
-    inserts.filter(i => i.row.event_kind === 'form_submit').length === 0);
+    inserts.filter(i => i.row.event_kind === 'form_submit_ok').length === 0);
 }
 
 // --- a failed submit reaches the beacon as fail, and is still recorded locally ---
@@ -159,8 +159,8 @@ console.log('assessment telemetry');
   check('failed submit emits attempt then fail',
     calls.map(c => c[0]).join(',') === 'attempt,fail', JSON.stringify(calls.map(c => c[0])));
   check('failure still recorded locally when beacon is live', ctx.__m2mFailures.length === 1);
-  check('failure still persisted as a form_error row',
-    inserts.some(i => i.row.event_kind === 'form_error'));
+  check('failure still persisted as a form_submit_error row',
+    inserts.some(i => i.row.event_kind === 'form_submit_error'));
 }
 
 // --- a broken beacon must not swallow the event ---
@@ -171,7 +171,7 @@ console.log('assessment telemetry');
                      fail: () => { throw new Error('beacon down'); } };
   await ctx.sbInsertAssessment({ composite_score: 50 });
   check('throwing beacon falls back to the direct traffic row',
-    inserts.some(i => i.row.event_kind === 'form_submit'));
+    inserts.some(i => i.row.event_kind === 'form_submit_ok'));
 }
 
 // --- with no Worker, everything still lands directly ---
@@ -179,10 +179,25 @@ console.log('assessment telemetry');
   const { ctx, inserts } = load();
   await ctx.sbInsertAssessment({ composite_score: 50 });
   check('absent beacon writes the fallback traffic row',
-    inserts.some(i => i.row.event_kind === 'form_submit'));
+    inserts.some(i => i.row.event_kind === 'form_submit_ok'));
   await ctx.sbInsertTraffic('form_view', { outcome: 'ok' });
   check('view events stay a direct insert (no attempt/ok/fail verb for a view)',
     inserts.at(-1).table === 'm2m_web_traffic' && inserts.at(-1).row.event_kind === 'form_view');
+}
+
+// --- every event_kind emitted must satisfy the m2m_web_traffic CHECK constraint ---
+// ck_event_kind, read from production 2026-08-30. A value outside this set is
+// rejected with 23514 and the row is lost -- which is how form_submit/form_error
+// silently failed before they were corrected.
+{
+  const ALLOWED = new Set(['pageview','form_view','form_start',
+                           'form_submit_attempt','form_submit_ok','form_submit_error']);
+  const html = fs.readFileSync(HTML, 'utf8');
+  const emitted = [...html.matchAll(/(?:trafficRow|sbInsertTraffic)\(\s*'([a-z_]+)'/g)].map(m => m[1]);
+  check('at least one event_kind is emitted', emitted.length > 0, `found ${emitted.length}`);
+  const bad = [...new Set(emitted)].filter(k => !ALLOWED.has(k));
+  check('every emitted event_kind satisfies ck_event_kind', bad.length === 0,
+    bad.length ? `rejected by DB: ${bad.join(', ')}` : '');
 }
 
 console.log(failures ? `\n${failures} FAILED` : '\nall passed');

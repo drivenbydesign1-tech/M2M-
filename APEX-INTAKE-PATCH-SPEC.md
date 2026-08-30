@@ -147,6 +147,13 @@ function r(a){ a.preventDefault(), console.log("PIVOT OS intake email:", t), n("
 
 The email is logged and dropped; `n("")` clears the input unconditionally. Patch
 in `WEB-LAYER-FINDINGS-2026-08-29.md` under "Task 1 — the patch, ready to apply".
+**`source` must be one of `self_serve`, `facilitated`, `workshop`.**
+`roi_assessment_source_check` rejects any other value with Postgres `23514`, after
+validation, RLS and the network have all passed. Confirmed end-to-end over real HTTP on
+2026-08-30: an anonymous insert with `source='self_serve'` returned **HTTP 201**; the same
+insert with `source='pivot-os-landing'` returned **HTTP 400 `23514`**. If the landing page
+needs its own attribution, widen the constraint deliberately rather than inventing a value.
+
 `roi_assessment` accepts anonymous inserts (policy `roi_assessment_insert`,
 roles `{anon,authenticated}`, `with_check=true`); `contact_email` and `source`
 both exist.

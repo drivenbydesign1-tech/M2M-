@@ -413,7 +413,7 @@ function m2mFail(stage,err){
   console.error('[m2m] FAILED at '+stage+':',msg);
   // Best-effort durable record. Guarded so a failing failure-logger can never recurse.
   if(sbClient&&stage!=='traffic-insert'){
-    try{ sbClient.from('m2m_web_traffic').insert(trafficRow('form_error',{outcome:'error',error_text:String(msg).slice(0,300)})); }catch(e){}
+    try{ sbClient.from('m2m_web_traffic').insert(trafficRow('form_submit_error',{outcome:'error',error_text:String(msg).slice(0,300)})); }catch(e){}
   }
 }
 
@@ -557,7 +557,7 @@ async function sbInsertAssessment(row){
     const {error}=await sbClient.from('m2m_switch_assessments').insert(row);
     if(error){ beacon('fail',FORM_NAME,error); m2mFail('assessment-insert',error); return; }
     // Beacon owns the success event when live, so the two never double-count.
-    if(!beacon('ok',FORM_NAME)) sbInsertTraffic('form_submit',{outcome:'ok'});
+    if(!beacon('ok',FORM_NAME)) sbInsertTraffic('form_submit_ok',{outcome:'ok'});
   }catch(e){ beacon('fail',FORM_NAME,e); m2mFail('assessment-insert',e); }
 }
 
