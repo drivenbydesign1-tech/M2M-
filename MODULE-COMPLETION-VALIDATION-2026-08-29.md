@@ -1,7 +1,7 @@
 # Module progress + completion contract — independent adversarial validation
 
-> **REMEDIATION STATUS, 2026-08-30 — V1–V5 and V8 (partial) are fixed and verified.**
-> V6, V7 and the V8 cascade are open and are decisions, not patches — see the end
+> **REMEDIATION STATUS, 2026-08-30 — V1–V5, V7 and V8 (partial) are fixed and verified.**
+> V6 and the V8 cascade remain open and are decisions, not patches — see the end
 > of this banner.
 > The findings below are preserved as written at the time of testing; this banner
 > records what has since changed and how it was proven.
@@ -96,12 +96,57 @@
 > pins `user_id = auth.uid()` itself. The nine `security_definer_view` ERRORs all
 > pre-date this work and name no module or checkpoint object.
 >
+> **V7 — FIXED, and not in the shape I recommended.** Migration
+> `20260830002252 v7_learner_read_own_checkpoints`. I recommended a learner
+> `SELECT`-only row policy on `m2m_checkpoints`. Grounding the change showed that
+> would leak: RLS is row-level, so a blanket policy hands the learner *every*
+> column of their own row, including `kev_notes` (the Founder's private review
+> notes) and `client_token`. The obvious mitigation —
+> `REVOKE SELECT (kev_notes, client_token) FROM authenticated` — does not work
+> here, because **admins reach this table through the same `authenticated`
+> database role**, gated only by `m2m_is_admin()` at the row level. A column-level
+> revoke would strip the Founder's own review UI of the notes column. Column
+> privileges cannot tell admin from learner when both are one DB role.
+>
+> So the table stays closed and the learner reads through
+> `fn_my_checkpoints(p_os_lane, p_module_id)` — `SECURITY DEFINER`, `STABLE`,
+> pinned `search_path`, scoped to `auth.uid()`, `EXECUTE` granted to
+> `authenticated` only (revoked from `PUBLIC` and `anon`). It returns
+> `id, os_lane, checkpoint_id, module_title, status, verdict, score, ai_feedback,
+> submitted_at, reviewed_at, kev_authenticated, kev_auth_at, updated_at` and
+> deliberately omits `kev_notes`, `client_token`, `judge_session_id`, `client_id`,
+> `client_name`, `platform`, `email`, `submission`, `submission_text`,
+> `ntfy_channel`, `escalation_sent`. Same pattern `fn_complete_module()` already
+> uses, and it puts the authority split in the function rather than in the absence
+> of a column grant.
+>
+> | Re-test | Result |
+> |---|---|
+> | learner A reads own evidence via the RPC | **1 row**, theirs |
+> | learner A queries learner B's checkpoint | **0 rows** |
+> | learner B reads | **1 row**, theirs only |
+> | no session | **0 rows** — does not fall through |
+> | learner reads `m2m_checkpoints` directly | **0 rows** — `kev_notes`/`client_token` still unreachable |
+> | RPC signature audited for private columns | none present |
+> | mixed-case / padded lane + module filter | matches, 1 row |
+> | `anon` EXECUTE | **denied**; `authenticated` granted |
+> | learner UPDATE on `m2m_checkpoints` | **0 rows written** — no write path opened |
+> | **end-to-end: learner discovers evidence via the RPC, then completes the module** | **works** |
+>
+> That last row is the one that matters: it is the exact sequence V7 recorded as
+> structurally unreachable, now executed by a learner-scoped actor with no admin
+> and no `service_role`. Rollback: `DROP FUNCTION public.fn_my_checkpoints(text,text);`
+>
+> Two things worth Kev's eye. **`m2m_checkpoints` currently holds zero rows**, so
+> this is entirely prospective — the policy has never been exercised against real
+> data shapes, and my seeds are the only shapes it has seen. And **`kev_notes` is a
+> one-word decision I made conservatively**: if those notes are meant *for* the
+> learner rather than about them, adding the column to the RPC is a one-line change.
+>
 > **Still open, and each is a decision rather than a patch:**
 > - **V6** — unfixable as specified: there is no module registry anywhere in the
 >   database. `m2m_module_progress` *is* the module list, so there is nothing to
 >   validate `module_id` against. Grounding this was the first thing I did.
-> - **V7** — completion remains structurally unreachable on a learner's behalf by a
->   server actor holding a user-scoped JWT. A security-posture decision.
 > - **V8 cascade** — revoking authentication does *not* retroactively un-complete a
 >   module already completed on that evidence. A governance decision.
 >
