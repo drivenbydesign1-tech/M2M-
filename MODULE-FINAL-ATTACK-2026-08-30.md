@@ -8,7 +8,62 @@
 evidence revocation · direct-write bypass · completed-row immutability · authority escalation.
 **Production changes:** none. Every probe ran inside a transaction that was rolled back.
 
-**Verdict: three findings. One of them is mine and is live.**
+**Verdict: three findings. One was mine and live — it is now fixed and re-attacked.**
+
+> **A2 FIXED AND RE-ATTACKED, 2026-08-30 — migration `20260830012054 fix_a2_whitespace_key_normalisation`.**
+> A1 and A3 remain open and are recorded below as written.
+>
+> **The fix goes wider than the finding, deliberately.** A2 happened because V5 was
+> fixed against the instance I tested (spaces) rather than the class (anything
+> invisible or whitespace-equivalent). Fixing the instance again would have been the
+> same mistake. So normalisation now lives in **one** shared function,
+> `public.m2m_norm_key(text, boolean)` — IMMUTABLE, pinned `search_path`, EXECUTE
+> revoked from `PUBLIC` — used by both RPCs, and it:
+>
+> 1. deletes characters that are invisible *anywhere* in the string (ZWSP, ZWNJ,
+>    ZWJ, word-joiner, BOM) — two visually identical lanes can no longer be two keys;
+> 2. collapses every run of any whitespace-class character (ASCII, NBSP, the
+>    U+2000–200A quads, U+2028/9, U+202F, U+205F, U+3000) to one plain space,
+>    **including internal runs**, so `PIVOT\tOS`, `PIVOT  OS` and `PIVOT OS` are one
+>    key rather than three;
+> 3. trims, and maps empty to NULL so the existing guard refuses it.
+>
+> `fn_complete_module` now normalises the *stored* checkpoint values through the same
+> function, so evidence written with any padding or casing still resolves.
+>
+> **Backfill checked before applying:** `m2m_module_progress` holds one row
+> (`c1783129…`, lane `PIVOT_OS`, module `HTTP-PROBE`) whose key is unchanged under the
+> new rule; `m2m_checkpoints` holds zero rows. Nothing to collapse.
+>
+> Re-attacked as a confirmed non-admin learner, in rolled-back transactions —
+> the A2 attack, widened, plus a full replay of the original sixteen vectors:
+>
+> | Re-test | Result |
+> |---|---|
+> | 10 lane variants — tab, LF, CR, NBSP, en-quad, ideographic space, BOM, ZWSP *inside*, lowercase | **collapsed to 1 row**, `'PIVOT'` |
+> | 4 module_id variants — tab, NBSP, ZWSP inside | **collapsed to 1 row** |
+> | lane of nothing but tab/newline/NBSP | **REFUSED** — `os_lane is required` |
+> | valid upsert, `PIVOT_OS` | lane intact, 1 row |
+> | internal single space `PIVOT OS` | **preserved**, not stripped |
+> | completion against a checkpoint stored as `E'\tpivot '` / `E' atk-mod'`, called twice | **1 completed row**, evidence linked |
+> | cross-user write · row reassignment | REFUSED |
+> | duplicate upserts | 1 row |
+> | delete checkpoint behind a completion · null its evidence | REFUSED (FK · `23514`) |
+> | self-complete on another learner's checkpoint (direct · via RPC) | REFUSED · REFUSED |
+> | direct UPDATE to completed | REFUSED |
+> | edit / delete own completed row | 0 edited, 0 deleted |
+> | downgrade a completed module via the RPC | REFUSED |
+> | learner adds self to `m2m_admins` | REFUSED — *permission denied* |
+> | forged `role: service_role` + `is_admin` claims | no escalation, canary invisible |
+>
+> Eighteen of eighteen. Rollback is in the migration body, and it reopens A2.
+>
+> **The recurring lesson, third instance:** V1, V2 and now A2 were each introduced by a
+> change that looked like hardening. The guard that would have caught all three is the
+> same one still not built — a conformance test that runs the adversarial input class,
+> not one example from it. There is no SQL test harness in this repo; the JS suite
+> cannot reach these functions.
+
 
 ---
 
