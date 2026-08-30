@@ -1,6 +1,8 @@
 # Module progress + completion contract — independent adversarial validation
 
-> **REMEDIATION STATUS, 2026-08-30 — V1 and V2 are both fixed and verified.**
+> **REMEDIATION STATUS, 2026-08-30 — V1–V5 and V8 (partial) are fixed and verified.**
+> V6, V7 and the V8 cascade are open and are decisions, not patches — see the end
+> of this banner.
 > The findings below are preserved as written at the time of testing; this banner
 > records what has since changed and how it was proven.
 >
@@ -32,22 +34,86 @@
 > legitimate admin re-flip was broken. Rollback: `ALTER TABLE public.m2m_module_progress
 > DROP CONSTRAINT ck_completed_requires_evidence;`
 >
-> **Still open:** V3–V6 (NULL lane, learner-writable `email` into facilitator views,
-> lane casing, invented module ids), V7 (completion structurally unreachable on a
-> learner's behalf), V8 (revocation does not cascade). Concurrency and authenticated
-> transport remain **NOT EXECUTED**.
+> **V3, V4, V5, V8 and the trigger cleanup — FIXED.** Migration
+> `20260830001042 module_progress_hardening_v3_v4_v5_v8_and_trigger_cleanup`,
+> followed by `20260830001457 checkpoint_auth_stamp_on_insert` for a residual the
+> verification itself surfaced. What changed:
 >
-> One residual worth a decision: with the constraint in place, the trigger's
-> `completed := TRUE` assignment is now dead weight on the invalid path — it turns
-> what could be a clear refusal into a raw `23514`. Removing that assignment from
-> `update_m2m_module_progress_updated_at()` is a separate, optional cleanup.
+> - **V3** — `fn_upsert_module_progress()` now refuses a NULL or blank `os_lane`
+>   or `module_id` instead of writing a row the partial unique index cannot see.
+> - **V5** — both RPCs normalise `upper(btrim(lane))` and `btrim(module_id)`, so
+>   casing and whitespace variants collide on the existing index instead of
+>   multiplying rows. `fn_complete_module()` matches its checkpoint
+>   case-insensitively so evidence written in any casing still resolves.
+> - **V4** — `learner_insert_own` and `learner_update_own` gain
+>   `(email IS NULL OR lower(email) = lower(auth.jwt() ->> 'email'))`, closing the
+>   path by which a learner could write an arbitrary `email` and surface their row
+>   inside another cohort's facilitator view.
+> - **V8 (partial)** — `update_m2m_checkpoints_updated_at()` now clears
+>   `kev_auth_at` when `kev_authenticated` goes true→false, so the timestamp cannot
+>   outlive the fact it recorded.
+> - **Trigger cleanup** — `completed := TRUE` is gone from
+>   `update_m2m_module_progress_updated_at()`. On its own that would have *opened* a
+>   gap (`status='completed'` with `completed=false` and no evidence), so the V2
+>   constraint was widened in the same migration to
+>   `((coalesce(completed,false)=false AND coalesce(status,'')<>'completed') OR completion_evidence_ref IS NOT NULL)`.
+>
+> Verified by re-running every attack and the valid paths, in rolled-back
+> transactions, as a confirmed non-admin learner:
+>
+> | Re-test | Result |
+> |---|---|
+> | V3 — NULL `os_lane` upsert | **REFUSED** `PROGRESS REFUSED: os_lane is required` |
+> | V3b/V3c — blank lane / blank module_id | **REFUSED**, same shape |
+> | V5 — 4 casing + whitespace variants | **collapsed to 1 row** |
+> | V4a — learner INSERT with a foreign `email` | **REFUSED** `42501` RLS |
+> | V4b — learner UPDATE rewriting `email` to a foreign one | **REFUSED** `42501` RLS |
+> | V2b — direct INSERT `status='completed'`, no evidence | **REFUSED** `23514` |
+> | V8b — `kev_authenticated` true→false | **`kev_auth_at` cleared** |
+> | V8c — completion on a withdrawn checkpoint | **REFUSED** “not Founder-authenticated” |
+> | R1 — valid learner upsert | works, 1 row `in_progress` |
+> | R2 — learner sets `status='completed'` via RPC | **REFUSED**, unchanged |
+> | R3 — `fn_complete_module()` with mixed-case lane | works, evidence linked |
+> | R4 — completion off an INSERT-authenticated checkpoint | works |
+> | R5 — completion off an unauthenticated checkpoint | **REFUSED** |
+> | R6 — UPDATE true→false still clears | unchanged |
+> | V4c — learner writes *their own* email, mixed case | **allowed**, 1 row |
+>
+> **A residual my own verification found, and I fixed.** `trg_m2m_checkpoints_updated_at`
+> fires BEFORE **UPDATE** only. A checkpoint written in a single INSERT with
+> `kev_authenticated = true` therefore landed with `kev_auth_at = NULL`. That fails
+> *closed* — `fn_complete_module()` requires the timestamp, so such a checkpoint
+> refuses to complete a module — but it is a trap: a legitimately authenticated
+> checkpoint inserted in one statement could never be used as evidence until
+> someone toggled the flag off and back on. Only `service_role` and `m2m_is_admin()`
+> can insert checkpoints at all, so this is correctness, not authorization. Fixed
+> with a BEFORE INSERT trigger that stamps on insert and drops a stray timestamp
+> when the flag is false (V8a, V8d, R4, R5 above).
+>
+> No new advisor findings. The one WARN on `fn_complete_module` — `authenticated`
+> can call a `SECURITY DEFINER` function — is by design: the learner has no policy
+> on `m2m_checkpoints`, so the function must be DEFINER to read the evidence, and it
+> pins `user_id = auth.uid()` itself. The nine `security_definer_view` ERRORs all
+> pre-date this work and name no module or checkpoint object.
+>
+> **Still open, and each is a decision rather than a patch:**
+> - **V6** — unfixable as specified: there is no module registry anywhere in the
+>   database. `m2m_module_progress` *is* the module list, so there is nothing to
+>   validate `module_id` against. Grounding this was the first thing I did.
+> - **V7** — completion remains structurally unreachable on a learner's behalf by a
+>   server actor holding a user-scoped JWT. A security-posture decision.
+> - **V8 cascade** — revoking authentication does *not* retroactively un-complete a
+>   module already completed on that evidence. A governance decision.
+>
+> Concurrency and authenticated transport remain **NOT EXECUTED**.
 
 **Validator:** CC (this session). **Date:** 2026-08-29, 23:44–23:55 UTC.
 **Target:** Supabase `jnmywpfdykuybrxkdcmc` — `fn_complete_module`,
 `fn_upsert_module_progress`, `m2m_module_progress`, `m2m_checkpoints`.
-**Production changes:** none. Every probe ran inside a transaction that was rolled
-back; every transport probe was refused before it could write. Final state
-verified unchanged.
+**Production changes during validation:** none. Every probe ran inside a transaction
+that was rolled back; every transport probe was refused before it could write. Final
+state verified unchanged. Production changes made *afterwards*, on explicit approval,
+are recorded in the banner above.
 
 ---
 
