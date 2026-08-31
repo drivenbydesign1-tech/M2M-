@@ -69,8 +69,11 @@ Budget for that. It is the part that will otherwise stall the patch.
   therefore keeps the visitor on their filled-in form — exactly the desired
   behaviour, no extra wiring.
 - **The phone number is on all three intake pages**, styled per lane
-  (`text-pivot`, `text-bridge`, `text-gold`), as `tel:9804749377` →
-  `980.474.9377`. The handoff's fallback copy is safe to use.
+  (`text-pivot`, `text-bridge`, `text-gold`), as a `tel:` link. Per the
+  2026-08-31 copy directive that number comes off every user-facing surface
+  and email becomes the sole contact path — so the fallback copy below names
+  email only, and this patch must not reintroduce a `tel:` link or the digits
+  in any form. The handoff's original fallback copy is **superseded**.
 - **The `if (window.m2m)` guards are safe.** `window.m2m` appears **0 times** in
   the bundle — the beacon does not exist yet. The guards no-op cleanly until the
   Worker ships, so they can go in now.
@@ -122,7 +125,7 @@ async function c(m){
   } catch (p) {
     console.error("PIVOT OS™ webhook error:", p);
     if (window.m2m) m2m.fail('pivot_intake', p);
-    setError("Something went wrong on our end — call 980.474.9377 or email us.");
+    setError("Something went wrong on our end — email info@model2message.net and we'll pick it up.");
     // do NOT call r(!0); do NOT clear the form
   }
 }
